@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-display: "Cormorant Garamond", "Playfair Display", Georgia, serif;
+  --font-body: "Jost", "Outfit", system-ui, sans-serif;
+  --bg: #FBF8F3;
+  --fg: #0C1210;
+}
+
+html, body { background: var(--bg); color: var(--fg); }
+body { font-family: var(--font-body); -webkit-font-smoothing: antialiased; }
+
+/* ── Typography helpers ─────────────────────────────────────────────── */
+.eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.5em;
+  text-transform: uppercase;
+  color: theme("colors.gold.DEFAULT");
+  font-weight: 500;
+}
+.gold-text {
+  background: linear-gradient(135deg, #E5C158 0%, #C9A961 50%, #8A7643 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.gold-border { border: 1px solid rgba(201, 169, 97, 0.35); }
+.hairline { height: 1px; background: linear-gradient(90deg, transparent, rgba(201, 169, 97, 0.6), transparent); }
+.glass-card {
+  background: rgba(4, 71, 28, 0.03);
+  border: 1px solid rgba(201, 169, 97, 0.2);
+  backdrop-filter: blur(14px);
+}
+.luxury-shadow { box-shadow: 0 30px 80px -30px rgba(4, 71, 28, 0.35); }
+
+/* ── Scrollbar (subtle) ─────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: #F4EEE3; }
+::-webkit-scrollbar-thumb { background: rgba(201, 169, 97, 0.4); border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(201, 169, 97, 0.7); }
+
+/* Selection */
+::selection { background: rgba(201, 169, 97, 0.35); color: #0C1210; }
