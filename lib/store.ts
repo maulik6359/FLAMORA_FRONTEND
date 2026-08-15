@@ -92,3 +92,14 @@ export const useWishlist = create<WishlistState>()(
     { name: "flamora-wishlist" },
   ),
 );
+
+type SearchStore = {
+  isSearching: boolean;
+  setIsSearching: (val: boolean) => void;
+};
+
+export const useSearchStore = create<SearchStore>((set) => ({
+  isSearching: false,
+  setIsSearching: (isSearching) => set({ isSearching }),
+}));
+
