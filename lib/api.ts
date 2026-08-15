@@ -31,10 +31,41 @@ export type Order = {
   currency: string;
   status: string;
   paymentStatus: string;
+  razorpayOrderId?: string;
+  razorpayPaymentId?: string;
+  shippingAddress?: any;
   createdAt: string;
 };
 
 export type User = { id: string; name: string; email: string; role: "customer" | "admin"; phone?: string };
+
+export type RazorpayOrderResponse = {
+  razorpayOrderId: string;
+  amount: number;
+  currency: string;
+  keyId: string;
+  orderId: string;
+  orderNumber: string;
+  user: {
+    name: string;
+    email: string;
+    phone?: string;
+  };
+};
+
+export type RazorpayVerifyPayload = {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+  orderId?: string;
+};
+
+export type RazorpayVerifyResponse = {
+  success: boolean;
+  orderId: string;
+  orderNumber: string;
+  paymentId: string;
+};
 
 const API = process.env.NEXT_PUBLIC_API_URL || "/api";
 
@@ -75,11 +106,15 @@ export const api = {
   myOrders: (token: string) => request<{ orders: Order[] }>("/orders/mine", {}, token),
   getOrder: (id: string, token: string) => request<{ order: Order }>(`/orders/${id}`, {}, token),
 
-  // Payments
-  checkout: (orderId: string, token: string) =>
-    request<{ url: string; sessionId: string }>("/payments/checkout", { method: "POST", body: JSON.stringify({ orderId }) }, token),
-  checkoutStatus: (sessionId: string, token: string) =>
-    request<{ paymentStatus: string; status: string; orderId?: string; amount?: number; currency?: string }>(`/payments/checkout/status/${sessionId}`, {}, token),
+  // Payments (Razorpay)
+  createRazorpayOrder: (orderId: string, token: string) =>
+    request<RazorpayOrderResponse>("/payments/create-order", { method: "POST", body: JSON.stringify({ orderId }) }, token),
+  verifyRazorpayPayment: (data: RazorpayVerifyPayload, token: string) =>
+    request<RazorpayVerifyResponse>("/payments/verify", { method: "POST", body: JSON.stringify(data) }, token),
+  reportPaymentFailure: (data: { orderId?: string; razorpayOrderId?: string; error?: any }, token: string) =>
+    request<{ ok: boolean }>("/payments/failure", { method: "POST", body: JSON.stringify(data) }, token),
+  paymentStatus: (orderId: string, token: string) =>
+    request<{ paymentStatus: string; status: string; orderId: string; total: number; currency: string }>(`/payments/order/${orderId}`, {}, token),
 
   // Admin
   admin: {

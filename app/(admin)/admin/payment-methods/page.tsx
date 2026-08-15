@@ -8,7 +8,7 @@ export default function PaymentMethodsPage() {
       eyebrow="Ledger · Settlements"
       endpoint="/payment-methods"
       fields={[
-        { name: "name", label: "Display name", required: true, placeholder: "Stripe (Cards)" },
+        { name: "name", label: "Display name", required: true, placeholder: "Razorpay (UPI / Cards / NetBanking)" },
         {
           name: "type",
           label: "Type",

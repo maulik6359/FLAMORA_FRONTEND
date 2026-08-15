@@ -3,10 +3,11 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Minus, Plus, X, Loader2 } from "lucide-react";
+import { Minus, Plus, X, Loader2, ShieldCheck, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth, useCart } from "@/lib/store";
 import { api, formatPrice } from "@/lib/api";
+import { loadRazorpayScript, type RazorpayOptions } from "@/lib/razorpay";
 
 export default function CartPage() {
   const router = useRouter();
@@ -16,27 +17,117 @@ export default function CartPage() {
   const items = cart.items;
   const subtotal = cart.subtotal();
 
-  async function checkout() {
+  async function handleCheckout() {
     if (!user || !token) {
       toast.info("Please sign in to complete your order");
       router.push("/login?from=/cart");
       return;
     }
     if (items.length === 0) return;
+
     try {
       setBusy(true);
+
+      // 1. Ensure Razorpay checkout script is loaded
+      const scriptLoaded = await loadRazorpayScript();
+      if (!scriptLoaded) {
+        setBusy(false);
+        toast.error("Razorpay SDK could not be loaded. Please check your internet connection.");
+        return;
+      }
+
+      // 2. Create the Order in backend
       const { order } = await api.createOrder(
         { items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })) },
         token,
       );
-      const { url, sessionId } = await api.checkout(order._id, token);
-      try {
-        sessionStorage.setItem("flamora.pending_order", JSON.stringify({ orderId: order._id, sessionId }));
-      } catch {}
-      window.location.href = url;
+
+      // 3. Initialize Razorpay order on backend
+      const rzpOrderData = await api.createRazorpayOrder(order._id, token);
+
+      // 4. Configure Razorpay modal options
+      const options: RazorpayOptions = {
+        key: rzpOrderData.keyId,
+        amount: rzpOrderData.amount,
+        currency: rzpOrderData.currency,
+        name: "FLAMORA",
+        description: `Order ${rzpOrderData.orderNumber}`,
+        order_id: rzpOrderData.razorpayOrderId,
+        prefill: {
+          name: user.name || "",
+          email: user.email || "",
+          contact: user.phone || "",
+        },
+        theme: {
+          color: "#0f2e24", // Flamora Emerald Vault
+        },
+        handler: async function (response) {
+          try {
+            toast.loading("Verifying your payment…", { id: "rzp-verify" });
+            const verifyRes = await api.verifyRazorpayPayment(
+              {
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                orderId: order._id,
+              },
+              token,
+            );
+
+            toast.dismiss("rzp-verify");
+            if (verifyRes.success) {
+              cart.clear();
+              toast.success("Payment verified! Thank you for your order.");
+              router.push(`/checkout/success?order_id=${verifyRes.orderId}&payment_id=${verifyRes.paymentId}`);
+            } else {
+              setBusy(false);
+              toast.error("Payment verification could not be confirmed.");
+            }
+          } catch (verifyErr: any) {
+            toast.dismiss("rzp-verify");
+            setBusy(false);
+            toast.error(verifyErr.message || "Payment verification failed.");
+          }
+        },
+        modal: {
+          ondismiss: function () {
+            setBusy(false);
+            toast.info("Payment window closed. Your bag is saved.");
+            api
+              .reportPaymentFailure(
+                {
+                  orderId: order._id,
+                  razorpayOrderId: rzpOrderData.razorpayOrderId,
+                  error: "Customer closed payment modal",
+                },
+                token,
+              )
+              .catch(() => {});
+          },
+        },
+      };
+
+      // 5. Open Razorpay modal
+      const rzp = new (window as any).Razorpay(options);
+      rzp.on("payment.failed", function (response: any) {
+        setBusy(false);
+        const errMsg = response.error?.description || "Payment failed. Please try again.";
+        toast.error(errMsg);
+        api
+          .reportPaymentFailure(
+            {
+              orderId: order._id,
+              razorpayOrderId: rzpOrderData.razorpayOrderId,
+              error: response.error,
+            },
+            token,
+          )
+          .catch(() => {});
+      });
+      rzp.open();
     } catch (e: any) {
       setBusy(false);
-      toast.error(e.message || "Could not start checkout");
+      toast.error(e.message || "Could not start Razorpay checkout");
     }
   }
 
@@ -54,7 +145,11 @@ export default function CartPage() {
         {items.length === 0 ? (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-24">
             <p className="text-onyx/50 tracking-[0.3em] uppercase text-sm mb-8">The bag is empty</p>
-            <Link href="/shop" className="inline-block px-10 py-4 bg-emerald-vault text-ivory text-[11px] tracking-[0.4em] uppercase hover:bg-emerald transition" data-testid="cart-empty-cta">
+            <Link
+              href="/shop"
+              className="inline-block px-10 py-4 bg-emerald-vault text-ivory text-[11px] tracking-[0.4em] uppercase hover:bg-emerald transition"
+              data-testid="cart-empty-cta"
+            >
               Discover the Maison
             </Link>
           </motion.div>
@@ -125,15 +220,18 @@ export default function CartPage() {
                   </div>
                 </div>
                 <button
-                  onClick={checkout}
+                  onClick={handleCheckout}
                   disabled={busy}
                   className="mt-8 w-full px-8 py-4 bg-emerald-vault text-ivory text-[11px] tracking-[0.4em] uppercase hover:bg-emerald transition disabled:opacity-50 flex items-center justify-center gap-2"
                   data-testid="checkout-btn"
                 >
-                  {busy && <Loader2 size={14} className="animate-spin" />}
-                  {busy ? "Processing…" : user ? "Pay with Stripe" : "Sign In to Checkout"}
+                  {busy ? <Loader2 size={14} className="animate-spin" /> : <CreditCard size={14} className="text-gold" />}
+                  {busy ? "Opening Gateway…" : user ? "Pay with Razorpay" : "Sign In to Checkout"}
                 </button>
-                <p className="mt-4 text-[10px] tracking-[0.25em] uppercase text-onyx/40 text-center">Secured by Stripe · Certified authentic</p>
+                <div className="mt-4 flex items-center justify-center gap-1.5 text-[10px] tracking-[0.2em] uppercase text-onyx/50">
+                  <ShieldCheck size={13} className="text-gold" />
+                  <span>Secured by Razorpay · Certified authentic</span>
+                </div>
               </div>
             </div>
           </div>
