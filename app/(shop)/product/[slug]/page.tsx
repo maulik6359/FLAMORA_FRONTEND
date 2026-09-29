@@ -22,6 +22,7 @@ import {
 import { ProductCard } from "@/components/product/ProductCard";
 import { formatPrice } from "@/lib/format";
 import { useCartStore } from "@/store/cart";
+import { useWishlistStore } from "@/store/wishlist";
 import Navbar from "@/components/layout/Navbar";
 
 const accordions = [
@@ -111,8 +112,9 @@ function ProductContent({ product }: { product: typeof products[number] }) {
   const [quantity, setQuantity] =
     useState(1);
 
-  const [wished, setWished] =
-    useState(false);
+  const wishlistIds = useWishlistStore((state) => state.ids);
+  const toggleWishlist = useWishlistStore((state) => state.toggle);
+  const wished = wishlistIds.includes(product.id);
 
   const [openAccordion, setOpenAccordion] =
     useState("materials");
@@ -478,18 +480,14 @@ function ProductContent({ product }: { product: typeof products[number] }) {
                 aria-label="Save to wishlist"
                 aria-pressed={wished}
                 onClick={() => {
-                  const next =
-                    !wished;
-
-                  setWished(next);
-
+                  toggleWishlist(product.id);
                   toast(
-                    next
+                    !wished
                       ? "Saved to wishlist"
                       : "Removed from wishlist",
                   );
                 }}
-                className="grid size-14 shrink-0 place-items-center border border-border transition-colors hover:border-gold-deep"
+                className="grid size-14 shrink-0 place-items-center border border-border transition-colors hover:border-gold-deep cursor-pointer"
               >
                 <Heart
                   className={

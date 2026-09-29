@@ -1,14 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/store";
 
-export default function RegisterPage() {
+function RegisterForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const rawFrom = searchParams.get("from");
+  const redirectTo = rawFrom || "/account";
+  const isCheckout = rawFrom === "/checkout" || rawFrom?.startsWith("/checkout");
+
   const { setAuth } = useAuth();
   const [form, setForm] = useState({
     name: "",
@@ -50,8 +55,8 @@ export default function RegisterPage() {
       setBusy(true);
       const result = await api.register({ name, email, password: form.password });
       setAuth(result.user, result.token);
-      toast.success("Account created successfully");
-      router.push(result.user.role === "admin" ? "/admin/dashboard" : "/account");
+      toast.success(result.user.role === "admin" ? "Admin registered" : isCheckout ? "Account created! Redirecting to checkout…" : "Account created successfully");
+      router.push(result.user.role === "admin" ? "/admin/dashboard" : redirectTo);
     } catch (error: any) {
       toast.error(error.message || "Unable to create your account right now.");
     } finally {
@@ -59,17 +64,26 @@ export default function RegisterPage() {
     }
   }
 
+  const loginLink = rawFrom ? `/auth/login?from=${encodeURIComponent(rawFrom)}` : "/auth/login";
+
   return (
-    <div className="mx-auto max-w-md px-4 py-28">
-      <p className="eyebrow">Membership</p>
+    <div className="mx-auto max-w-md px-4 py-24 md:py-28">
+      <p className="eyebrow text-gold-deep">Membership</p>
 
       <h1 className="mt-3 font-display text-4xl">Create account</h1>
 
-      <p className="mt-3 text-sm text-muted-foreground">
-        Create your FLĀMORÁ account to track orders, save pieces and receive private collection previews.
-      </p>
+      {isCheckout ? (
+        <div className="mt-4 rounded-md border border-gold-deep/30 bg-gold-soft/40 p-4 text-xs leading-relaxed text-foreground">
+          <p className="font-medium text-gold-deep">Checkout Registration</p>
+          <p className="mt-1 text-muted-foreground">Create an account to complete your purchase. Your bag will be saved.</p>
+        </div>
+      ) : (
+        <p className="mt-3 text-sm text-muted-foreground">
+          Create your FLĀMORÁ account to track orders, save pieces and receive private collection previews.
+        </p>
+      )}
 
-      <form className="mt-10 space-y-7" onSubmit={onSubmit}>
+      <form className="mt-8 space-y-7" onSubmit={onSubmit}>
         <div>
           <label htmlFor="register-name" className="eyebrow">
             Full name
@@ -108,7 +122,7 @@ export default function RegisterPage() {
           onChange={(value) => updateField("confirm", value)}
         />
 
-        <label className="flex items-start gap-3 text-xs text-muted-foreground">
+        <label className="flex items-start gap-3 text-xs text-muted-foreground cursor-pointer">
           <input
             type="checkbox"
             checked={form.newsletter}
@@ -118,7 +132,7 @@ export default function RegisterPage() {
           <span>Send me new arrivals and private previews.</span>
         </label>
 
-        <label className="flex items-start gap-3 text-xs text-muted-foreground">
+        <label className="flex items-start gap-3 text-xs text-muted-foreground cursor-pointer">
           <input
             type="checkbox"
             checked={form.terms}
@@ -131,16 +145,24 @@ export default function RegisterPage() {
         <button
           type="submit"
           disabled={busy}
-          className="w-full bg-ink py-4 text-[11px] uppercase tracking-[0.28em] text-ivory transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-full bg-ink py-4 text-[11px] uppercase tracking-[0.28em] text-ivory transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
         >
-          {busy ? "Creating account…" : "Create account"}
+          {busy ? "Creating account…" : isCheckout ? "Register & Continue to Checkout" : "Create account"}
         </button>
       </form>
 
       <p className="mt-8 text-xs uppercase tracking-[0.18em] text-muted-foreground">
-        Already a member? <Link href="/auth/login" className="link-underline text-foreground">Sign in</Link>
+        Already a member? <Link href={loginLink} className="link-underline text-foreground font-medium">Sign in</Link>
       </p>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="mx-auto max-w-md px-4 py-28 text-center text-sm text-muted-foreground">Loading…</div>}>
+      <RegisterForm />
+    </Suspense>
   );
 }
 
@@ -173,4 +195,4 @@ function Field({
       />
     </div>
   );
-}
+}

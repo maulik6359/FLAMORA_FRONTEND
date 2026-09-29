@@ -10,6 +10,7 @@ interface WishlistState {
   toggle: (productId: string) => void;
   has: (productId: string) => boolean;
   clear: () => void;
+  set: (ids: string[]) => void;
 }
 
 export const useWishlistStore = create<WishlistState>()(
@@ -42,9 +43,11 @@ export const useWishlistStore = create<WishlistState>()(
       has: (productId) => get().ids.includes(productId),
 
       clear: () => set({ ids: [] }),
+
+      set: (ids) => set({ ids: Array.isArray(ids) ? ids : [] }),
     }),
     {
       name: "flamora-wishlist",
     },
   ),
-);
+);

@@ -10,7 +10,10 @@ import { useAuth } from "@/lib/store";
 function LoginForm() {
  const router = useRouter();
  const searchParams = useSearchParams();
- const redirectTo = searchParams.get("from") || "/account";
+ const rawFrom = searchParams.get("from");
+ const redirectTo = rawFrom || "/account";
+ const isCheckout = rawFrom === "/checkout" || rawFrom?.startsWith("/checkout");
+
  const { setAuth } = useAuth();
  const [email, setEmail] = useState("");
  const [password, setPassword] = useState("");
@@ -28,7 +31,7 @@ function LoginForm() {
      setBusy(true);
      const result = await api.login({ email: trimmedEmail, password });
      setAuth(result.user, result.token);
-     toast.success(result.user.role === "admin" ? "Admin signed in" : "Welcome back");
+     toast.success(result.user.role === "admin" ? "Admin signed in" : isCheckout ? "Signed in! Returning to checkout…" : "Welcome back");
      router.push(result.user.role === "admin" ? "/admin/dashboard" : redirectTo);
    } catch (error: any) {
      toast.error(error.message || "Invalid email or password.");
@@ -37,15 +40,24 @@ function LoginForm() {
    }
  }
 
+ const registerLink = rawFrom ? `/auth/register?from=${encodeURIComponent(rawFrom)}` : "/auth/register";
+
  return (
-   <div className="mx-auto max-w-sm px-4 py-28">
-     <p className="eyebrow">Membership</p>
+   <div className="mx-auto max-w-sm px-4 py-24 md:py-28">
+     <p className="eyebrow text-gold-deep">Membership</p>
 
      <h1 className="mt-3 font-display text-4xl">Sign in</h1>
 
-     <p className="mt-3 text-sm text-muted-foreground">Sign in to your FLĀMORÁ account.</p>
+     {isCheckout ? (
+       <div className="mt-4 rounded-md border border-gold-deep/30 bg-gold-soft/40 p-4 text-xs leading-relaxed text-foreground">
+         <p className="font-medium text-gold-deep">Checkout Authentication</p>
+         <p className="mt-1 text-muted-foreground">Sign in to complete your purchase. Your cart items will be saved.</p>
+       </div>
+     ) : (
+       <p className="mt-3 text-sm text-muted-foreground">Sign in to your FLĀMORÁ account.</p>
+     )}
 
-     <form className="mt-10 space-y-7" onSubmit={onSubmit}>
+     <form className="mt-8 space-y-7" onSubmit={onSubmit}>
        <div>
          <label htmlFor="login-email" className="eyebrow">
            Email
@@ -82,20 +94,20 @@ function LoginForm() {
        <button
          type="submit"
          disabled={busy}
-         className="w-full bg-ink py-4 text-[11px] uppercase tracking-[0.28em] text-ivory transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+         className="w-full bg-ink py-4 text-[11px] uppercase tracking-[0.28em] text-ivory transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
        >
-         {busy ? "Signing in…" : "Continue"}
+         {busy ? "Signing in…" : isCheckout ? "Sign in to Checkout" : "Continue"}
        </button>
      </form>
 
      <p className="mt-8 text-xs uppercase tracking-[0.18em] text-muted-foreground">
        New to FLĀMORÁ?{" "}
-       <Link href="/auth/register" className="link-underline text-foreground">
+       <Link href={registerLink} className="link-underline text-foreground font-medium">
          Create account
        </Link>
      </p>
 
-     <Link href="/shop" className="mt-4 inline-block text-xs uppercase tracking-[0.22em] link-underline">
+     <Link href="/shop" className="mt-4 inline-block text-xs uppercase tracking-[0.22em] link-underline text-muted-foreground hover:text-foreground">
        Back to shopping
      </Link>
    </div>
@@ -104,8 +116,8 @@ function LoginForm() {
 
 export default function LoginPage() {
  return (
-   <Suspense fallback={<div className="mx-auto max-w-sm px-4 py-28">Loading…</div>}>
+   <Suspense fallback={<div className="mx-auto max-w-sm px-4 py-28 text-center text-sm text-muted-foreground">Loading…</div>}>
      <LoginForm />
    </Suspense>
  );
-}
+}

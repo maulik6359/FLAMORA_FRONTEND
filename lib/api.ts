@@ -39,6 +39,16 @@ export type Order = {
 
 export type User = { id: string; name: string; email: string; role: "customer" | "admin"; phone?: string };
 
+export type PaymentMethod = {
+  _id: string;
+  name: string;
+  type: string;
+  provider: string;
+  description?: string;
+  isActive: boolean;
+  sortOrder?: number;
+};
+
 export type RazorpayOrderResponse = {
   razorpayOrderId: string;
   amount: number;
@@ -94,6 +104,7 @@ export const api = {
   },
   product: (slug: string) => request<{ product: Product }>(`/products/${slug}`),
   categories: () => request<{ categories: Category[] }>("/categories"),
+  paymentMethods: () => request<{ items: PaymentMethod[] }>("/payment-methods"),
 
   // Wishlist
   wishlist: (token: string) => request<{ items: Product[] }>("/wishlist", {}, token),

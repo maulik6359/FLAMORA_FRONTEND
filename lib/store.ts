@@ -2,6 +2,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { User } from "@/lib/api";
+import { useCartStore } from "@/store/cart";
+import { useWishlistStore } from "@/store/wishlist";
 
 type AuthState = {
   user: User | null;
@@ -35,63 +37,8 @@ export const useAuth = create<AuthState>()(
   ),
 );
 
-type CartItem = { productId: string; name: string; slug: string; image?: string; price: number; quantity: number; stock: number };
-
-type CartState = {
-  items: CartItem[];
-  add: (item: CartItem) => void;
-  remove: (id: string) => void;
-  setQty: (id: string, qty: number) => void;
-  clear: () => void;
-  subtotal: () => number;
-  count: () => number;
-};
-
-export const useCart = create<CartState>()(
-  persist(
-    (set, get) => ({
-      items: [],
-      add: (item) =>
-        set((s) => {
-          const idx = s.items.findIndex((i) => i.productId === item.productId);
-          if (idx >= 0) {
-            const items = [...s.items];
-            items[idx] = { ...items[idx], quantity: Math.min(items[idx].quantity + item.quantity, item.stock) };
-            return { items };
-          }
-          return { items: [...s.items, item] };
-        }),
-      remove: (id) => set((s) => ({ items: s.items.filter((i) => i.productId !== id) })),
-      setQty: (id, qty) =>
-        set((s) => ({
-          items: s.items.map((i) => (i.productId === id ? { ...i, quantity: Math.max(1, Math.min(qty, i.stock)) } : i)),
-        })),
-      clear: () => set({ items: [] }),
-      subtotal: () => get().items.reduce((sum, i) => sum + i.price * i.quantity, 0),
-      count: () => get().items.reduce((sum, i) => sum + i.quantity, 0),
-    }),
-    { name: "flamora-cart" },
-  ),
-);
-
-type WishlistState = {
-  ids: string[];
-  toggle: (id: string) => void;
-  set: (ids: string[]) => void;
-  has: (id: string) => boolean;
-};
-
-export const useWishlist = create<WishlistState>()(
-  persist(
-    (set, get) => ({
-      ids: [],
-      toggle: (id) => set((s) => ({ ids: s.ids.includes(id) ? s.ids.filter((x) => x !== id) : [...s.ids, id] })),
-      set: (ids) => set({ ids }),
-      has: (id) => get().ids.includes(id),
-    }),
-    { name: "flamora-wishlist" },
-  ),
-);
+export const useCart = useCartStore;
+export const useWishlist = useWishlistStore;
 
 type SearchStore = {
   isSearching: boolean;
@@ -102,4 +49,5 @@ export const useSearchStore = create<SearchStore>((set) => ({
   isSearching: false,
   setIsSearching: (isSearching) => set({ isSearching }),
 }));
+
 

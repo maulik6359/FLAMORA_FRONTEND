@@ -18,6 +18,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Wordmark } from "@/components/brand/Wordmark";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/store";
 import { useCartStore } from "@/store/cart";
 import { useWishlistStore } from "@/store/wishlist";
 import { AnnouncementBar } from "./AnnouncementBar";
@@ -53,6 +54,7 @@ export default function Navbar() {
   const hydrated = useHydrated();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const { user } = useAuth();
   const cartItems = useCartStore((state) => state.items);
   const openCart = useCartStore((state) => state.openCart);
   const wishlistIds = useWishlistStore((state) => state.ids);
@@ -60,7 +62,7 @@ export default function Navbar() {
   const cartCount = useMemo(
     () =>
       hydrated
-        ? cartItems.reduce((total, item) => total + item.quantity, 0)
+        ? cartItems.reduce((total, item) => total + (item.quantity || 1), 0)
         : 0,
     [cartItems, hydrated],
   );
@@ -87,12 +89,11 @@ export default function Navbar() {
     return route === "/" ? pathname === "/" : pathname.startsWith(route);
   };
 
+  const accountHref = user ? "/account" : "/auth/login";
+
   return (
     <>
-    
       <header className="sticky top-0 z-40 border-b border-black/10 bg-[#fbfaf7]/95 text-[#181614] backdrop-blur-xl">
-        
-
         <nav
           aria-label="Primary navigation"
           className="relative mx-auto grid h-[78px] max-w-[1600px] grid-cols-[1fr_auto_1fr] items-center px-4 md:px-38 lg:h-[90px]"
@@ -102,7 +103,7 @@ export default function Navbar() {
             aria-label="Open menu"
             aria-expanded={mobileOpen}
             onClick={() => setMobileOpen(true)}
-            className="grid size-10 place-items-center justify-self-start lg:hidden"
+            className="grid size-10 place-items-center justify-self-start lg:hidden cursor-pointer"
           >
             <Menu className="size-5" strokeWidth={1.25} />
           </button>
@@ -164,7 +165,6 @@ export default function Navbar() {
             className="absolute left-1/2 -translate-x-1/2"
           >
             <span className="font-serif text-[clamp(28px,2.7vw,48px)] tracking-[-0.045em]">FLĀMORÁ & CO</span>
-            {/* <Wordmark className="text-[clamp(20px,2.1vw,34px)] tracking-[0.16em]" /> */}
           </Link>
 
           <div className="col-start-3 flex items-center justify-self-end gap-0.5 sm:gap-1 lg:gap-2">
@@ -182,7 +182,7 @@ export default function Navbar() {
             <ActionLink href="/search" label="Search">
               <Search />
             </ActionLink>
-            <ActionLink href="/auth/login" label="Account" hiddenOnMobile>
+            <ActionLink href={accountHref} label={user ? `Account (${user.name})` : "Sign In"} hiddenOnMobile>
               <User />
             </ActionLink>
             <ActionLink
@@ -199,7 +199,7 @@ export default function Navbar() {
                 openCart();
               }}
               aria-label={`Shopping bag, ${cartCount} items`}
-              className="relative grid size-10 place-items-center transition-opacity hover:opacity-55"
+              className="relative grid size-10 place-items-center transition-opacity hover:opacity-55 cursor-pointer"
             >
               <ShoppingBag className="size-5" strokeWidth={1.2} />
               {!!cartCount && <Badge value={cartCount} />}
@@ -275,7 +275,7 @@ export default function Navbar() {
               </div>
 
               <div className="mt-auto flex gap-5 border-t border-black/10 pt-6 text-[10px] uppercase tracking-[0.2em]">
-                <Link href="/auth/login">Account</Link>
+                <Link href={accountHref}>{user ? "Account" : "Sign In"}</Link>
                 <Link href="/wishlist">Wishlist ({wishlistCount})</Link>
               </div>
             </motion.aside>
