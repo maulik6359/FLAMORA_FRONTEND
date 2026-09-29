@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Check, Loader2, XCircle, PackageCheck, ArrowRight } from "lucide-react";
@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import { useAuth, useCart } from "@/lib/store";
 import { api, formatPrice, type Order } from "@/lib/api";
 
-export default function CheckoutSuccessPage() {
+function CheckoutSuccessContent() {
   const params = useSearchParams();
   const orderId = params.get("order_id") || params.get("orderId");
   const paymentId = params.get("payment_id") || params.get("razorpay_payment_id");
@@ -172,5 +172,13 @@ export default function CheckoutSuccessPage() {
         )}
       </motion.div>
     </div>
+  );
+}
+
+export default function CheckoutSuccessPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-ivory pt-36 text-center">Confirming your purchase…</div>}>
+      <CheckoutSuccessContent />
+    </Suspense>
   );
 }

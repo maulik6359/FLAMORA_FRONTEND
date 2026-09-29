@@ -13,7 +13,7 @@ export default function AccountPage() {
 
   useEffect(() => {
     if (!user || !token) {
-      router.push("/login");
+      router.push("/auth/login");
       return;
     }
     api.myOrders(token).then((r) => setOrders(r.orders)).catch(() => {});

@@ -82,13 +82,13 @@ export function Navbar() {
             )}
           </Link>
           <Link
-            href={user ? "/account" : "/login"}
+            href={user ? "/account" : "/auth/login"}
             className="hover:text-gold transition text-[9px] tracking-[0.25em] uppercase hidden md:block"
             data-testid="nav-account"
           >
             {user ? user.name.split(" ")[0] : "Sign In"}
           </Link>
-          <Link href={user ? "/account" : "/login"} className="hover:text-gold transition md:hidden" data-testid="nav-account-mobile">
+          <Link href={user ? "/account" : "/auth/login"} className="hover:text-gold transition md:hidden" data-testid="nav-account-mobile">
             <User size={18} />
           </Link>
         </div>

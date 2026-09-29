@@ -1,23 +1,59 @@
-import type { Metadata } from "next";
-import "./globals.css";
-import { Cormorant_Garamond, Jost } from "next/font/google";
+import { Jost, Playfair_Display } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import { Toaster } from "sonner";
 
-const display = Cormorant_Garamond({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-display" });
-const body = Jost({ subsets: ["latin"], weight: ["300", "400", "500", "600"], variable: "--font-body" });
+import "./globals.css";
 
-export const metadata: Metadata = {
-  title: "FLAMORA — Maison de Joaillerie",
-  description: "A century of quiet obsession. Luxury jewellery and fashion, handcrafted in Paris.",
-  openGraph: { title: "FLAMORA", description: "Maison de Joaillerie — Paris" },
+const playfair = Playfair_Display({
+  variable: "--font-heading",
+  subsets: ["latin"],
+  display: "swap",
+  weight: ["400", "500", "600", "700", "800", "900"],
+  style: ["normal", "italic"],
+});
+
+const jost = Jost({
+  variable: "--font-sans",
+  subsets: ["latin"],
+  display: "swap",
+  weight: ["300", "400", "500", "600", "700"],
+});
+
+export const metadata = {
+  title: {
+    default: "FLĀMORÁ — Fine Jewellery",
+    template: "%s | FLĀMORÁ",
+  },
+  description:
+    "FLĀMORÁ creates timeless fine jewellery using ethically sourced diamonds, precious stones and recycled gold.",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}) {
   return (
-    <html lang="en" className={`${display.variable} ${body.variable}`}>
-      <body className="min-h-screen bg-ivory text-onyx antialiased">
+    <html
+      lang="en"
+      className={`${playfair.variable} ${jost.variable}`}
+      suppressHydrationWarning
+    >
+      <body
+        className="min-h-screen bg-background font-sans text-foreground antialiased"
+        suppressHydrationWarning
+      >
         {children}
-        <Toaster position="top-right" richColors closeButton />
+
+        <Toaster
+          position="bottom-right"
+          closeButton
+          richColors
+          toastOptions={{
+            duration: 4000,
+            className: "font-sans",
+          }}
+        />
+
+        {process.env.NODE_ENV === "production" && <Analytics />}
       </body>
     </html>
   );

@@ -1,12 +1,12 @@
 "use client";
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/store";
 import { api } from "@/lib/api";
 
-export default function AdminLoginPage() {
+function AdminLoginContent() {
   const router = useRouter();
   const params = useSearchParams();
   const from = params.get("from") || "/admin/dashboard";
@@ -29,6 +29,7 @@ export default function AdminLoginPage() {
         toast.error("This account is not authorized for the console");
         return;
       }
+
       setAuth(user, token);
       toast.success("Welcome, Maison");
       router.push(from);
@@ -85,5 +86,13 @@ export default function AdminLoginPage() {
         </p>
       </motion.div>
     </div>
+  );
+}
+
+export default function AdminLoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-noir" />}>
+      <AdminLoginContent />
+    </Suspense>
   );
 }

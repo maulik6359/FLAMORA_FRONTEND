@@ -1,49 +1,60 @@
-import { ShopClient } from "@/components/site/ShopClient";
+import type { Metadata } from "next";
+import { Suspense } from "react";
 
-export const dynamic = "force-dynamic";
+import { ShopPageClient } from "@/components/shop/ShopPageClient";
+import Navbar from "@/components/layout/Navbar";
+import { Footer } from "@/components/layout/Footer";
 
-async function fetchProducts(params: { category?: string; search?: string }) {
-  const qs = new URLSearchParams();
-  if (params.category) qs.set("category", params.category);
-  if (params.search) qs.set("search", params.search);
-  qs.set("limit", "50");
-  try {
-    const r = await fetch(`http://127.0.0.1:8001/api/products?${qs}`, { cache: "no-store" });
-    if (!r.ok) return { items: [], total: 0, error: true };
-    const data = await r.json();
-    return { items: data.items || [], total: data.total || 0, error: false };
-  } catch (err) {
-    console.error("fetchProducts error:", err);
-    return { items: [], total: 0, error: true };
-  }
-}
 
-async function fetchCategories() {
-  try {
-    const r = await fetch("http://127.0.0.1:8001/api/categories", { cache: "no-store" });
-    if (!r.ok) return [];
-    return (await r.json()).categories || [];
-  } catch (err) {
-    console.error("fetchCategories error:", err);
-    return [];
-  }
-}
 
-export default async function ShopPage({ searchParams }: { searchParams: Promise<{ category?: string; search?: string }> }) {
-  const sp = await searchParams;
-  const [data, categories] = await Promise.all([
-    fetchProducts(sp),
-    fetchCategories(),
-  ]);
+export const metadata: Metadata = {
+  title: "Shop Fine Jewellery — FLĀMORÁ",
+  description:
+    "Browse rings, necklaces, earrings and bracelets in 18k gold and platinum. Filter by metal, gemstone and price.",
+  openGraph: {
+    title: "Shop Fine Jewellery — FLĀMORÁ",
+    description:
+      "Browse rings, necklaces, earrings and bracelets in 18k gold and platinum. Filter by metal, gemstone and price.",
+  },
+};
 
+function ShopLoading() {
   return (
-    <ShopClient
-      initialProducts={data.items}
-      totalCount={data.total}
-      categories={categories}
-      currentCategory={sp.category}
-      currentSearch={sp.search}
-      hasError={!!data.error}
-    />
+    <main className="min-h-screen bg-background">
+      <section className="border-b border-border bg-ivory px-4 py-20 md:px-8 md:py-28">
+        <div className="mx-auto max-w-[1600px]">
+          <div className="h-3 w-32 animate-pulse bg-gold-soft" />
+          <div className="mt-6 h-14 w-72 animate-pulse bg-silk" />
+          <div className="mt-5 h-5 w-full max-w-xl animate-pulse bg-silk" />
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-[1600px] px-4 py-14 md:px-8">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {Array.from({ length: 8 }).map((_, index) => (
+            <div key={index}>
+              <div className="aspect-[4/5] animate-pulse bg-silk" />
+              <div className="mt-4 h-5 w-3/4 animate-pulse bg-silk" />
+              <div className="mt-2 h-4 w-1/3 animate-pulse bg-silk" />
+            </div>
+          ))}
+        </div>
+      </section>
+    </main>
+  );
+}
+
+export default function ShopPage() {
+  return (
+    <div>
+    
+      <div>
+        <Suspense fallback={<ShopLoading />}>
+          <ShopPageClient />
+        </Suspense>
+      </div>
+
+  
+    </div>
   );
 }

@@ -3,12 +3,14 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Heart, Minus, Plus, Shield, Truck } from "lucide-react";
 import { toast } from "sonner";
-import { useCart, useWishlist } from "@/lib/store";
+import { useWishlist } from "@/lib/store";
 import { formatPrice, type Product } from "@/lib/api";
+import { useCartStore } from "@/store/cart";
 
 export function ProductDetailClient({ product }: { product: Product }) {
-  const cart = useCart();
   const wishlist = useWishlist();
+  const addItem = useCartStore((state) => state.addItem);
+  const openCart = useCartStore((state) => state.openCart);
   const [activeImg, setActiveImg] = useState(0);
   const [qty, setQty] = useState(1);
   const price = product.discountPrice && product.discountPrice > 0 ? product.discountPrice : product.price;
@@ -16,15 +18,19 @@ export function ProductDetailClient({ product }: { product: Product }) {
 
   function addToCart() {
     if (!inStock) return;
-    cart.add({
-      productId: product._id,
-      name: product.name,
+
+    addItem({
+      id: product._id,
       slug: product.slug,
+      name: product.name,
       image: product.images[0],
       price,
       quantity: qty,
-      stock: product.stockQuantity,
+      metal: product.material || "18K Yellow Gold",
+      size: "One Size",
     });
+
+    openCart();
     toast.success(`${product.name} added to bag`);
   }
 
