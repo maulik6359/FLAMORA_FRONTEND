@@ -1,7 +1,7 @@
 "use client";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { User } from "@/lib/api";
+import { api, type User } from "@/lib/api";
 import { useCartStore } from "@/store/cart";
 import { useWishlistStore } from "@/store/wishlist";
 
@@ -9,12 +9,15 @@ type AuthState = {
   user: User | null;
   token: string | null;
   setAuth: (user: User, token: string) => void;
+  /** Forgets the session on this device only (e.g. after the server rejected the token). */
   clear: () => void;
+  /** Signs out: ends the session on the server too, then forgets it locally. */
+  logout: () => Promise<void>;
 };
 
 export const useAuth = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       token: null,
       setAuth: (user, token) => {
@@ -31,6 +34,12 @@ export const useAuth = create<AuthState>()(
           document.cookie = "flamora_role=; path=/; max-age=0";
         }
         set({ user: null, token: null });
+      },
+      logout: async () => {
+        const { token } = get();
+        // Sign out locally even if the server can't be reached.
+        if (token) await api.logout(token).catch(() => {});
+        get().clear();
       },
     }),
     { name: "flamora-auth" },

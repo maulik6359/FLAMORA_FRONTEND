@@ -8,7 +8,7 @@ import { api, formatPrice, type Order } from "@/lib/api";
 
 export default function AccountPage() {
   const router = useRouter();
-  const { user, token, clear } = useAuth();
+  const { user, token, logout } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
 
   useEffect(() => {
@@ -72,7 +72,7 @@ export default function AccountPage() {
         </section>
 
         <div className="mt-16 text-center">
-          <button onClick={() => { clear(); router.push("/"); }} className="text-[11px] tracking-[0.4em] uppercase text-onyx/60 hover:text-gold border-b border-onyx/20 pb-1 transition" data-testid="logout-btn">
+          <button onClick={async () => { await logout(); router.push("/"); }} className="text-[11px] tracking-[0.4em] uppercase text-onyx/60 hover:text-gold border-b border-onyx/20 pb-1 transition" data-testid="logout-btn">
             Sign Out
           </button>
         </div>

@@ -44,8 +44,11 @@ export function CrudAdmin({
       // For coupons/inventory/products/etc use admin endpoint; for taxonomy use public list
       const url = endpoint.startsWith("/admin/") ? endpoint : `/admin${endpoint}`;
       const res = await fetch(`/api${url}?all=true`, { headers: { Authorization: `Bearer ${token}` } });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || `Could not load ${title.toLowerCase()} (HTTP ${res.status})`);
       setItems(data.items || []);
+    } catch (err: any) {
+      toast.error(err.message || `Could not load ${title.toLowerCase()}`);
     } finally { setBusy(false); }
   }
   useEffect(() => { load(); }, [token]);

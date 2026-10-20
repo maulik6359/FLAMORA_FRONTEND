@@ -91,7 +91,8 @@ Its modules target endpoints **this backend doesn't have**: `/auth/logout`, `/us
       └── sets cookies flamora_token, flamora_role (7 days, SameSite=Lax, not HttpOnly)
 4. Redirect: admin → /admin/dashboard, otherwise → ?from= target or /account
 5. Later calls: pages read `token` from useAuth and pass it to api.* or set the Authorization header
-6. Sign out: useAuth.clear() removes the state and cookies (no backend call)
+6. Sign out: useAuth.logout() calls POST /api/auth/logout (revokes every token of the user),
+   then clear() removes the state and cookies. The local sign-out happens even if the call fails.
 ```
 
 Admin sign-in (`/admin/login`) uses the same `api.login`, but refuses to store the session when `user.role !== "admin"` and shows "This account is not authorized for the console". After a successful sign-in it goes to the `?from=` path, or `/admin/dashboard` by default.
@@ -121,11 +122,11 @@ Implemented in `app/(shop)/checkout/page.tsx`:
       ```json
       {
         "items": [{ "productId": "<cart item id>", "quantity": 1 }],
-        "shippingAddress": { "name": "...", "address": "...", "city": "...", "postcode": "...", "country": "Australia", "phone": "..." }
+        "shippingAddress": { "name": "...", "line1": "...", "city": "...", "postalCode": "...", "country": "Australia", "phone": "..." }
       }
       ```
 
-      These address keys don't match the backend `AddressSchema`. See [Known issues 3](known-issues.md#3-checkout-shipping-address-doesnt-match-the-schema).
+      The address keys follow the backend `AddressSchema`. The form's "address" and "postcode" inputs are sent as `line1` and `postalCode`.
    3. **Razorpay:**
       - It calls `api.createRazorpayOrder(order._id)`, then `loadRazorpayScript()`, then `new Razorpay(options).open()`.
       - **Success handler:** calls `api.verifyRazorpayPayment({...response, orderId})`. On success it clears the cart and shows an inline confirmation with the order number and payment ID.

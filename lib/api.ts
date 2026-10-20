@@ -96,6 +96,7 @@ export const api = {
   login: (data: { email: string; password: string }) =>
     request<{ token: string; user: User }>("/auth/login", { method: "POST", body: JSON.stringify(data) }),
   me: (token: string) => request<{ user: User }>("/auth/me", {}, token),
+  logout: (token: string) => request<{ ok: true }>("/auth/logout", { method: "POST" }, token),
 
   // Products
   products: (params: Record<string, any> = {}) => {

@@ -193,10 +193,11 @@ export default function CheckoutPage() {
           quantity: i.quantity,
         })),
         shippingAddress: {
+          // Field names follow the backend AddressSchema.
           name: formData.name,
-          address: formData.address,
+          line1: formData.address,
           city: formData.city,
-          postcode: formData.postcode,
+          postalCode: formData.postcode,
           country: "Australia",
           phone: formData.phone,
         },

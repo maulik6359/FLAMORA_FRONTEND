@@ -20,12 +20,14 @@ type AuthState = {
   user: User | null;        // { id, name, email, role: "customer" | "admin", phone? }
   token: string | null;     // JWT from /api/auth/login or /register
   setAuth(user, token): void;
-  clear(): void;
+  clear(): void;            // forget the session on this device only
+  logout(): Promise<void>;  // revoke it on the server, then clear()
 };
 ```
 
 - `setAuth` saves the user and token, and **also writes two cookies**, `flamora_token` and `flamora_role`, with `path=/; max-age=604800 (7 days); samesite=lax`. The edge [middleware](components-and-routing.md#admin-route-protection-middlewarets) reads these cookies, because it can't see `localStorage`.
-- `clear` removes both cookies and resets the state. It's called by sign-out in `/account` and `AdminShell`.
+- `clear` removes both cookies and resets the state. Checkout calls it when the server rejects the session.
+- `logout` calls `POST /api/auth/logout`, which revokes every token of the user on the server, and then `clear`. Failure to reach the server doesn't block the local sign-out. It's called by the sign-out buttons in `/account` and `AdminShell`.
 - Nothing refreshes or re-checks the token on load. A token that expired on the server stays in the store until an API call fails. There's also no automatic sign-out on a 401 in the main client.
 
 ### `useCartStore`
