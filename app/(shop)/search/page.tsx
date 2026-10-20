@@ -4,19 +4,21 @@ import { useMemo, useState } from "react";
 
 import { ProductCard } from "@/components/product/ProductCard";
 import { filterProducts } from "@/lib/filterProducts";
+import { useCatalog } from "@/hooks/use-catalog";
 import Navbar from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 
 export default function SearchPage() {
   const [term, setTerm] = useState("");
+  const catalog = useCatalog();
 
   const results = useMemo(() => {
     if (!term.trim()) return [];
 
-    return filterProducts({
+    return filterProducts(catalog.products, {
       q: term,
     });
-  }, [term]);
+  }, [catalog.products, term]);
 
   return (
     

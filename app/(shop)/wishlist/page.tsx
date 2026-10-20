@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Heart } from "lucide-react";
 
 import { ProductCard } from "@/components/product/ProductCard";
-import { products } from "@/data/products";
+import { useCatalog } from "@/hooks/use-catalog";
 import { useWishlistStore } from "@/store/wishlist";
 import { useHydrated } from "@/hooks/use-hydrated";
 
@@ -12,7 +12,10 @@ export default function WishlistPage() {
   const hydrated = useHydrated();
   const ids = useWishlistStore((state) => state.ids);
 
-  const saved = hydrated ? products.filter((product) => ids.includes(product.id)) : [];
+  const catalog = useCatalog();
+  const ready = hydrated && !catalog.loading;
+
+  const saved = ready ? catalog.products.filter((product) => ids.includes(product.id)) : [];
 
   return (
     <div className="mx-auto max-w-[1600px] px-4 py-16 md:px-12 lg:px-20 min-h-[70vh]">
@@ -22,13 +25,17 @@ export default function WishlistPage() {
           Wishlist
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          {hydrated ? `${saved.length} ${saved.length === 1 ? 'saved piece' : 'saved pieces'}` : ''}
+          {ready ? `${saved.length} ${saved.length === 1 ? 'saved piece' : 'saved pieces'}` : ''}
         </p>
       </div>
 
-      {!hydrated ? (
+      {!ready ? (
         <div className="py-24 text-center text-sm text-muted-foreground">
           Loading wishlist…
+        </div>
+      ) : catalog.error ? (
+        <div role="alert" className="py-24 text-center text-sm text-muted-foreground">
+          We couldn't load your saved pieces. Please try again in a moment.
         </div>
       ) : saved.length === 0 ? (
         <div className="py-24 flex flex-col items-center justify-center text-center">
@@ -54,4 +61,4 @@ export default function WishlistPage() {
       )}
     </div>
   );
-}
+}

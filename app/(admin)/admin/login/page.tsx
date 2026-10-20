@@ -55,7 +55,6 @@ function AdminLoginContent() {
               name="email"
               type="email"
               required
-              defaultValue="admin@flamora.com"
               className="w-full px-4 py-3 bg-neutral-950 border border-neutral-800 focus:border-gold focus:outline-none text-sm text-neutral-100"
               data-testid="admin-login-email"
             />
@@ -67,7 +66,6 @@ function AdminLoginContent() {
               type="password"
               required
               minLength={6}
-              defaultValue="Admin@1234"
               className="w-full px-4 py-3 bg-neutral-950 border border-neutral-800 focus:border-gold focus:outline-none text-sm text-neutral-100"
               data-testid="admin-login-password"
             />
@@ -81,9 +79,6 @@ function AdminLoginContent() {
             {busy ? "Signing in…" : "Sign In"}
           </button>
         </form>
-        <p className="mt-8 text-[10px] tracking-[0.3em] uppercase text-neutral-600 text-center">
-          Default: admin@flamora.com · Admin@1234
-        </p>
       </motion.div>
     </div>
   );

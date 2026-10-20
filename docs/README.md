@@ -13,7 +13,7 @@ The frontend, published as `flamora-frontend` v1.0.0, is a Next.js App Router ap
 | [Architecture](architecture.md) | Folder structure, route groups, entry points, rendering model, styling |
 | [Setup and configuration](setup-and-configuration.md) | Installation, environment variables, scripts, `next.config.mjs`, build and deployment |
 | [Pages, components and routing](components-and-routing.md) | Every route, layouts, the admin middleware, component catalogue |
-| [State management and data flow](state-management.md) | Zustand stores, persistence, static catalogue data versus API data |
+| [State management and data flow](state-management.md) | Zustand stores, persistence, the API product catalogue |
 | [API integration](api-integration.md) | API clients, which pages call which endpoints, auth and checkout flows |
 | [Forms, validation and utilities](forms-validation-and-utilities.md) | Form handling, client-side validation, notifications, helper modules |
 | [Known issues](known-issues.md) | Frontend problems and frontend–backend mismatches found while documenting |
@@ -72,7 +72,7 @@ The backend must be running on `127.0.0.1:8001` for API calls to work. See [Gett
 | Area | Data source | Notes |
 | --- | --- | --- |
 | Home (`/`) | Static content, or the API (see [route conflict](known-issues.md#1-two-pages-resolve-to-)) | Cinematic landing page with video, 3D and editorial sections |
-| Shop, search, product detail, collections | **Static** `data/products.ts` | Client-side filtering and sorting |
+| Shop, search, product detail, collections, wishlist | API `/api/products` (through `lib/catalog.ts`) | Client-side filtering and sorting of the loaded catalogue |
 | Cart, wishlist | Zustand stores persisted to `localStorage` | Wishlist isn't synced with the API wishlist |
 | Auth (login, register) | API `/api/auth/*` | JWT stored in Zustand and mirrored into cookies |
 | Checkout | API `/api/orders`, `/api/payments/*`, `/api/payment-methods` | Razorpay modal or Cash on Delivery |

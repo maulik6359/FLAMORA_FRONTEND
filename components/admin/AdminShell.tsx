@@ -73,7 +73,7 @@ const NAV_GROUPS: { title: string; items: { href: string; label: string; icon: a
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, token, clear } = useAuth();
+  const { user, token, logout } = useAuth();
   const isLoginPage = pathname === "/admin/login" || pathname === "/admin";
 
   useEffect(() => {
@@ -127,7 +127,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             <p className="truncate">{user?.email}</p>
           </div>
           <button
-            onClick={() => { clear(); router.push("/admin/login"); }}
+            onClick={async () => { await logout(); router.push("/admin/login"); }}
             className="flex items-center gap-2 text-xs text-neutral-500 hover:text-red-400 transition"
             data-testid="admin-logout-btn"
           >

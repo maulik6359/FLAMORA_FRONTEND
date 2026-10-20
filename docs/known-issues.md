@@ -22,15 +22,21 @@ Severity labels:
 
 ### 2. Storefront catalogue IDs can't be ordered through the API
 
-**Severity: High.** The shop, product detail, search, collection and wishlist pages read products from the static file [`data/products.ts`](../data/products.ts), whose IDs look like `"product-001"`. The cart stores these IDs, and checkout sends them to `POST /api/orders` as `productId`. The backend expects MongoDB ObjectIds, so it can't process these IDs and the order request fails. As a result, checkout can't create an order for items added from the static catalogue. The fix is either to load the catalogue from `/api/products` or to map static items to backend product IDs.
+**Status: Resolved** in the QA-audit fixes. The static product list was moved into the database (same slugs, images, metals, sizes and collections), and every storefront page now reads `/api/products` through [`lib/catalog.ts`](../lib/catalog.ts). Cart lines and wishlist entries hold database IDs, and the persisted stores drop entries saved under the old static IDs (store version 1).
+
+**Severity (when open): High.** The shop, product detail, search, collection and wishlist pages read products from the static file [`data/products.ts`](../data/products.ts), whose IDs look like `"product-001"`. The cart stores these IDs, and checkout sends them to `POST /api/orders` as `productId`. The backend expects MongoDB ObjectIds, so it can't process these IDs and the order request fails. As a result, checkout can't create an order for items added from the static catalogue. The fix is either to load the catalogue from `/api/products` or to map static items to backend product IDs.
 
 ### 3. Checkout shipping address doesn't match the schema
 
-**Severity: Medium.** Checkout sends `shippingAddress: { name, address, city, postcode, country: "Australia", phone }`. The backend's address schema expects `line1`, `city`, `state`, `postalCode` and `country`, and silently drops unknown keys, so only `city` and `country` are stored.
+**Status: Resolved** in the QA-audit fixes. Checkout now sends `shippingAddress: { name, line1, city, postalCode, country: "Australia", phone }`, which the backend stores in full (its schema gained `name` and `phone`). The backend now rejects unknown address keys with 400 instead of dropping them.
+
+**Severity (when open): Medium.** Checkout sent `{ name, address, city, postcode, … }`, so only `city` and `country` were stored.
 
 ### 4. Admin pages for Brands, Collections, Materials and Gemstones can't load their lists
 
-**Severity: Medium.** [`CrudAdmin`](../components/admin/CrudAdmin.tsx) loads rows with `GET /api/admin/<resource>?all=true`. For these four resources the backend has no admin list endpoint. The list endpoint is the **public** `GET /api/<resource>?all=true`. The admin request gets Express's default 404 page (HTML), and `res.json()` in the browser then throws. Creating, editing and deleting still reach valid endpoints.
+**Status: Resolved** in the QA-audit fixes. The backend now has the admin list endpoints, and `CrudAdmin` shows an error toast when a list can't be loaded instead of an empty table.
+
+**Severity (when open): Medium.** [`CrudAdmin`](../components/admin/CrudAdmin.tsx) loads rows with `GET /api/admin/<resource>?all=true`. For these four resources the backend had no admin list endpoint. The list endpoint is the **public** `GET /api/<resource>?all=true`. The admin request gets Express's default 404 page (HTML), and `res.json()` in the browser then throws. Creating, editing and deleting still reach valid endpoints.
 
 ### 5. The `/orders` page never loads orders
 
@@ -71,9 +77,9 @@ Severity labels:
 
 | # | Observation | Location |
 | --- | --- | --- |
-| S5 | **The token is readable by JavaScript.** The JWT is stored in `localStorage` (Zustand `persist`) and in a non-`HttpOnly` cookie `flamora_token`. The admin middleware trusts the client-written `flamora_role` cookie for routing. The backend still enforces the admin role on every admin API call. | `lib/store.ts`, `middleware.ts` |
+| S5 | **The token is readable by JavaScript.** (Partly mitigated: sign-out now calls `POST /api/auth/logout`, which revokes the token on the server, and a password change revokes older tokens.) The JWT is stored in `localStorage` (Zustand `persist`) and in a non-`HttpOnly` cookie `flamora_token`. The admin middleware trusts the client-written `flamora_role` cookie for routing. The backend still enforces the admin role on every admin API call. | `lib/store.ts`, `middleware.ts` |
 | S8 | **The build ignores type and lint errors.** `next.config.mjs` sets `typescript.ignoreBuildErrors` and `eslint.ignoreDuringBuilds`, and `tsconfig.json` has `"strict": false`. | `next.config.mjs`, `tsconfig.json` |
-| S9 | **The admin login form pre-fills credentials.** The email and password inputs on `/admin/login` have hard-coded `defaultValue`s, so a login pair ships in the client JavaScript bundle. Remove the defaults and rotate that password wherever it's in use. | `app/(admin)/admin/login/page.tsx` |
+| S9 | **Resolved: the admin login form pre-filled credentials.** The email and password inputs on `/admin/login` used to have hard-coded `defaultValue`s, so a login pair shipped in the client JavaScript bundle. The defaults were removed in the QA-audit fixes. The pair is still in Git history and in any bundle built before the fix, so **rotate that password** wherever it's in use. | `app/(admin)/admin/login/page.tsx` |
 
 ---
 
@@ -83,7 +89,7 @@ These modules aren't imported, directly or indirectly, by any `page.tsx` or `lay
 
 | Module | Notes |
 | --- | --- |
-| `app/(shop)/product/[slug]/ProductDetailClient.tsx` | An API-backed product detail component. The live product page uses static data instead. |
+| `app/(shop)/product/[slug]/ProductDetailClient.tsx` | An older API-backed product detail component. The live product page is `page.tsx`, which now also reads the API. |
 | `components/site/Navbar.tsx`, `Footer.tsx`, `ScrollExperience.tsx`, `SearchInput.tsx`, `ShopClient.tsx`, `SmoothScrollProvider.tsx` | An earlier storefront shell. `components/site/Hero.tsx` and `components/site/ProductCard.tsx` are still used by `app/(shop)/page.tsx`. |
 | `lib/api/auth.ts`, `lib/api/cart.ts`, `lib/api/products.ts`, `lib/api/wishlist.ts` | An Axios client for a **different** API shape (`/api/v1`, `/cart`, `/users/me`, `/products/slug/:slug`, `{ status, data }` envelopes) that the FLAMORA backend doesn't implement. |
 | `lib/api/orders.ts`, `lib/api/axios.ts`, `lib/auth-utils.ts` | Reachable only through the `/orders` page import. The call itself is commented out. |

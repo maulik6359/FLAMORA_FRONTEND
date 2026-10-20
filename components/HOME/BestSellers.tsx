@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 
 import {
@@ -6,9 +8,10 @@ import {
   StaggerItem,
 } from "@/components/motion/Reveal";
 import { ProductCard } from "@/components/product/ProductCard";
-import { products } from "@/data/products";
+import { useCatalog } from "@/hooks/use-catalog";
 
 export function BestSellers() {
+  const { products } = useCatalog();
   const bestSellers = products
     .filter(
       (product) =>

@@ -20,12 +20,14 @@ type AuthState = {
   user: User | null;        // { id, name, email, role: "customer" | "admin", phone? }
   token: string | null;     // JWT from /api/auth/login or /register
   setAuth(user, token): void;
-  clear(): void;
+  clear(): void;            // forget the session on this device only
+  logout(): Promise<void>;  // revoke it on the server, then clear()
 };
 ```
 
 - `setAuth` saves the user and token, and **also writes two cookies**, `flamora_token` and `flamora_role`, with `path=/; max-age=604800 (7 days); samesite=lax`. The edge [middleware](components-and-routing.md#admin-route-protection-middlewarets) reads these cookies, because it can't see `localStorage`.
-- `clear` removes both cookies and resets the state. It's called by sign-out in `/account` and `AdminShell`.
+- `clear` removes both cookies and resets the state. Checkout calls it when the server rejects the session.
+- `logout` calls `POST /api/auth/logout`, which revokes every token of the user on the server, and then `clear`. Failure to reach the server doesn't block the local sign-out. It's called by the sign-out buttons in `/account` and `AdminShell`.
 - Nothing refreshes or re-checks the token on load. A token that expired on the server stays in the store until an API call fails. There's also no automatic sign-out on a 401 in the main client.
 
 ### `useCartStore`
@@ -44,7 +46,9 @@ interface CartItem { id; slug; name; image; price; quantity; metal?; size?; stoc
 | `subtotal()` | `Σ price × quantity` |
 | `count()` | `Σ quantity` |
 
-The cart lives **only on the client**. The backend has no cart endpoint. Prices in the cart come from the static catalogue. The backend recalculates prices from its own database when an order is created.
+The cart lives **only on the client**. The backend has no cart endpoint. Prices in the cart come from the API catalogue at the moment the item was added; the backend recalculates prices from its own database when an order is created.
+
+The store is persisted with `version: 1`. Its `migrate` step drops lines whose `id` isn't a database ObjectId, because carts saved before the catalogue moved to the API held static IDs such as `product-001`, which can't be ordered. The wishlist store does the same.
 
 ### `useWishlistStore`
 
@@ -58,29 +62,26 @@ This store is entirely local. The backend wishlist endpoints (`/api/wishlist`) *
 
 Persisted stores are empty during server rendering and fill in after the browser loads. Components that render persisted values, such as the cart count, the wishlist page and checkout, use `useHydrated()` (`hooks/use-hydrated.ts`). It returns `false` until the first client effect runs, which avoids hydration mismatches. `AdminShell` notes that Zustand might not have rehydrated when it first runs its auth check.
 
-## Two product catalogues
+## Product catalogue
 
-There are two separate sources of product data, and they aren't linked.
+Products come from **the API** only (MongoDB through `GET /api/products`). The storefront's product list used to be a static array in `data/products.ts`; it was moved into the database (seeded from `backend/src/seeders/data/storefrontProducts.js`, with the same slugs, images, metals, sizes and collections), so cart and checkout use real IDs and admin changes reach the shop.
 
-| | Static catalogue | API catalogue |
-| --- | --- | --- |
-| Source | `data/products.ts` | MongoDB through `/api/products` |
-| ID format | `"product-001"` … | 24-character ObjectId |
-| Categories | rings, necklaces, earrings, bracelets | Rings, Necklaces, Earrings, Bracelets, Watches (seeded) |
-| Price formatting | AUD (`lib/format.ts`) | Currency field, EUR by default |
-| Extra fields | `metals[]`, `sizes[]`, `collection`, `stock`, `featured`, `bestseller`, `isNew` | `material`, `gemstone`, `carat`, `stockQuantity`, `isFeatured`, … |
-| Used by | `/shop`, `/search`, `/product/[slug]`, `/collections/*`, `/wishlist`, home sections, cart | `(shop)/page.tsx`, the admin console, order and checkout responses |
+| Piece | Role |
+| --- | --- |
+| [`lib/catalog.ts`](../lib/catalog.ts) | `fetchCatalog(params?)` loads every active product page by page (server components call the backend at `API_INTERNAL_URL`, default `http://127.0.0.1:8001`; the browser uses the `/api` rewrite). `toStorefrontProduct()` maps the API document onto the storefront `Product` type: `id` = `_id`, `category` = category slug, `price` = `discountPrice` when set, `stock` = `stockQuantity`, `featured`/`bestseller`/`isNew` from `isFeatured`/`isBestSeller`/`isNewArrival`. |
+| [`hooks/use-catalog.ts`](../hooks/use-catalog.ts) | `useCatalog()` for client components: one shared request per page, refreshed after 60 seconds, with `loading` and `error` states |
+| `lib/filterProducts.ts` | Filters and sorts the loaded list for `/shop` and `/search` |
 
-`data/products.ts` also exports `collections`, `testimonials`, `ALL_METALS`, `ALL_GEMSTONES`, `CATEGORIES` and helper functions (`getProductBySlug`, `getProductById`, `getCollectionBySlug`, `getProductsByCollection`, `getProductsByCategory`, `getFeaturedProducts`, `getBestSellerProducts`, `getNewProducts`, `getRelatedProducts`, `formatPrice`). `data/site.ts` holds the landing-page copy (`philosophySteps`, `makingSteps`, `menuItems`), and `data/images.ts` maps image keys to paths.
+`data/products.ts` keeps the storefront `Product` type, `collections` (collection descriptions and images), `testimonials`, `ALL_METALS`, `ALL_GEMSTONES`, `CATEGORIES`, `getCollectionBySlug` and `formatPrice`. Prices are still formatted as AUD while the API's currency is EUR ([Known issues 13](known-issues.md#13-prices-use-mixed-currencies)). `data/site.ts` holds the landing-page copy (`philosophySteps`, `makingSteps`, `menuItems`), and `data/images.ts` maps image keys to paths.
 
 ## Data flow diagrams
 
 ### Browsing and adding to the bag
 
 ```text
-data/products.ts ──► filterProducts(query from URL) ──► ShopPageClient ──► ProductCard ──► /product/[slug]
-                                                                       (wishlist toggle only)
-product/[slug] page ── getProductBySlug(slug) ── addItem({id, slug, name, image, price, metal, size, stock})
+GET /api/products ──► useCatalog() ──► filterProducts(query from URL) ──► ShopPageClient ──► ProductCard ──► /product/[slug]
+                                                                                       (wishlist toggle only)
+product/[slug] page ── useCatalog(), find by slug ── addItem({id: <ObjectId>, slug, name, image, price, metal, size, stock})
                                                                             ▼
                                                      useCartStore (localStorage "flamora-cart")
                                                                             ▼
@@ -104,7 +105,7 @@ useCartStore.items ──► POST /api/orders { items: [{productId: item.id, qua
                    ──► clearCart() and an inline confirmation
 ```
 
-See [API integration: checkout flow](api-integration.md#checkout-flow) for the details, and [Known issues 2](known-issues.md#2-storefront-catalogue-ids-cant-be-ordered-through-the-api) for why the `productId` values coming from the static catalogue are rejected.
+See [API integration: checkout flow](api-integration.md#checkout-flow) for the details. The `productId` values are database IDs, so the order is created ([Known issues 2](known-issues.md#2-storefront-catalogue-ids-cant-be-ordered-through-the-api), resolved).
 
 ### Admin pages
 

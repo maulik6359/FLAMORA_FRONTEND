@@ -34,14 +34,15 @@ frontend/
 │   ├── three/                    JewelScene (React Three Fiber)
 │   └── *.tsx                     Landing-page sections (LuxuryHeader, HeroSection, VideoSection, …)
 ├── data/                         Static content: products.ts, images.ts, site.ts
-├── hooks/                        use-hydrated.ts
+├── hooks/                        use-hydrated.ts, use-catalog.ts
 ├── lib/
 │   ├── api.ts                    Main fetch-based API client + shared API types + formatPrice
 │   ├── api/                      Legacy Axios client for a different API (unused)
 │   ├── store.ts                  useAuth store; re-exports cart and wishlist; useSearchStore
 │   ├── razorpay.ts               Checkout script loader + Razorpay types
 │   ├── format.ts                 formatPrice (AUD)
-│   ├── filterProducts.ts         Client-side filtering and sorting of static products
+│   ├── catalog.ts                fetchCatalog() from /api/products, toStorefrontProduct(), getRelatedProducts()
+│   ├── filterProducts.ts         Client-side filtering and sorting of the loaded catalogue
 │   ├── products.ts, types.ts     Types and helpers for the legacy API client
 │   ├── auth-utils.ts             localStorage token helpers for the legacy client
 │   └── utils.ts                  cn() class-name helper
@@ -88,14 +89,14 @@ Browser ──► /admin/* ? middleware.ts (cookie check) ──► layout chain
 
 ## Rendering and data strategy
 
-The app mixes two data sources:
+Data sources:
 
 | Source | Used by | Characteristics |
 | --- | --- | --- |
-| **Static TypeScript data** (`data/products.ts`, `data/site.ts`, `data/images.ts`) | Shop, search, product detail, collections, wishlist, home sections, cart contents | 4 categories (rings, necklaces, earrings, bracelets), product IDs like `product-001`, prices formatted as AUD |
-| **Backend API** | Auth, account, checkout, checkout success, `(shop)/page.tsx` home, and every admin page | MongoDB data with ObjectId IDs, prices in EUR |
+| **Backend API** | Products everywhere (shop, search, product detail, collections, wishlist, best sellers), auth, account, checkout, and every admin page | MongoDB data with ObjectId IDs. Products are loaded through [`lib/catalog.ts`](../lib/catalog.ts) and mapped onto the storefront `Product` type. |
+| **Static TypeScript data** (`data/products.ts`, `data/site.ts`, `data/images.ts`) | Collection descriptions, testimonials, filter constants, landing-page copy | No product data. The product list that used to be in `data/products.ts` now lives in the database (seeded from `backend/src/seeders/data/storefrontProducts.js`). |
 
-The two catalogues aren't linked. See [State management and data flow](state-management.md#two-product-catalogues) and [Known issues 2](known-issues.md#2-storefront-catalogue-ids-cant-be-ordered-through-the-api).
+See [State management and data flow](state-management.md#product-catalogue).
 
 ## Styling
 

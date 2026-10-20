@@ -12,6 +12,7 @@ import {
 import { ProductCard } from "@/components/product/ProductCard";
 import { ShopFilters } from "@/components/shop/ShopFilters";
 import { filterProducts } from "@/lib/filterProducts";
+import { useCatalog } from "@/hooks/use-catalog";
 
 function getSearchValues(searchParams:any) {
   const maximumPrice = searchParams.get("max");
@@ -46,9 +47,11 @@ export function ShopPageClient() {
     [searchParams],
   );
 
+  const catalog = useCatalog();
+
   const results = useMemo(
-    () => filterProducts(search),
-    [search],
+    () => filterProducts(catalog.products, search),
+    [catalog.products, search],
   );
 
   const view = search.view === "list" ? "list" : "grid";
@@ -217,8 +220,30 @@ export function ShopPageClient() {
               </div>
             </div>
 
-            {/* Empty results */}
-            {results.length === 0 ? (
+            {/* Loading, load failure and empty results */}
+            {catalog.loading ? (
+              <p className="py-28 text-center text-sm text-muted-foreground">
+                Loading the collection…
+              </p>
+            ) : catalog.error ? (
+              <div role="alert" className="flex flex-col items-center gap-4 py-28 text-center">
+                <p className="font-display text-3xl text-emerald-dark">
+                  The collection is unavailable
+                </p>
+
+                <p className="max-w-sm text-sm leading-6 text-muted-foreground">
+                  We couldn&apos;t load our pieces just now. Please try again in a moment.
+                </p>
+
+                <button
+                  type="button"
+                  onClick={() => window.location.reload()}
+                  className="mt-2 border border-ink px-8 py-3 text-[11px] uppercase tracking-[0.26em] transition-colors hover:bg-ink hover:text-ivory"
+                >
+                  Try again
+                </button>
+              </div>
+            ) : results.length === 0 ? (
               <div className="flex flex-col items-center gap-4 py-28 text-center">
                 <p className="font-display text-3xl text-emerald-dark">
                   Nothing matches yet

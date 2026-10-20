@@ -14,11 +14,9 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import {
-  getProductBySlug,
-  getRelatedProducts,
-  products,
-} from "@/data/products";
+import type { Product } from "@/data/products";
+import { getRelatedProducts } from "@/lib/catalog";
+import { useCatalog } from "@/hooks/use-catalog";
 import { ProductCard } from "@/components/product/ProductCard";
 import { formatPrice } from "@/lib/format";
 import { useCartStore } from "@/store/cart";
@@ -51,13 +49,23 @@ export default function ProductPage() {
     ? decodeURIComponent(rawSlug)
     : "";
 
-  const product =
-    getProductBySlug(slug) ??
-    products.find(
-      (item) =>
-        item.slug === slug ||
-        String(item.id) === slug,
+  const catalog = useCatalog();
+
+  const product = catalog.products.find(
+    (item) =>
+      item.slug === slug ||
+      String(item.id) === slug,
+  );
+
+  if (catalog.loading) {
+    return (
+      <main className="min-h-[70vh]">
+        <p className="mx-auto max-w-xl px-4 py-32 text-center text-sm text-muted-foreground">
+          Loading…
+        </p>
+      </main>
     );
+  }
 
   if (!product) {
     return (
@@ -72,7 +80,9 @@ export default function ProductPage() {
           </h1>
 
           <p className="mt-4 text-sm text-muted-foreground">
-            The jewellery piece you are looking for is currently unavailable.
+            {catalog.error
+              ? "We couldn't load this piece just now. Please try again in a moment."
+              : "The jewellery piece you are looking for is currently unavailable."}
           </p>
 
           <Link
@@ -86,10 +96,10 @@ export default function ProductPage() {
     );
   }
 
-  return <ProductContent product={product} />;
+  return <ProductContent product={product} catalog={catalog.products} />;
 }
 
-function ProductContent({ product }: { product: typeof products[number] }) {
+function ProductContent({ product, catalog }: { product: Product; catalog: Product[] }) {
   const [imageIndex, setImageIndex] =
     useState(0);
 
@@ -128,7 +138,7 @@ function ProductContent({ product }: { product: typeof products[number] }) {
   );
 
   const relatedProducts =
-    getRelatedProducts(product);
+    getRelatedProducts(catalog, product);
 
   const gemstone =
     detectGemstone(product);
@@ -693,7 +703,7 @@ function detectGemstone(product: { name?: string; description?: string; collecti
   return "None";
 }
 
-function getRating(product: typeof products[number]) {
+function getRating(product: Product) {
   if (product.bestseller) {
     return "4.9";
   }
@@ -705,7 +715,7 @@ function getRating(product: typeof products[number]) {
   return "4.7";
 }
 
-function getReviewCount(product: typeof products[number]) {
+function getReviewCount(product: Product) {
   if (product.bestseller) {
     return 41;
   }

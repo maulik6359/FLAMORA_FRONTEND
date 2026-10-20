@@ -10,13 +10,13 @@ Routing uses the Next.js **App Router**, where folders under `app/` map to URL s
 | --- | --- | --- | --- | --- |
 | `/` | `app/page.tsx` | Client | Static | Cinematic landing page: `ScrollProgress`, `LuxuryHeader`, `HeroSection`, `PhilosophySection`, `MakingSection`, `VideoSection`, `EditorialSection`, `LuxuryFooter`, plus the `MenuOverlay` and `InquiryOverlay` overlays. **Conflicts** with the next row. |
 | `/` | `app/(shop)/page.tsx` | Server (`force-dynamic`) | API | `site/Hero`, 4 featured products (`/api/products?featured=true&limit=4`), category tiles (`/api/categories`), maison story, newsletter form (no handler) |
-| `/shop` | `(shop)/shop/page.tsx` → `components/shop/ShopPageClient` | Server + client | Static | Grid or list of products with filters (`q`, `category`, `metal`, `gemstone`, `max`, `sort`, `view`) held in the URL query |
-| `/search` | `(shop)/search/page.tsx` | Client | Static | Text search over `data/products.ts` using `filterProducts` |
-| `/product/[slug]` | `(shop)/product/[slug]/page.tsx` | Client | Static | Gallery, metal and size selection, quantity, add to bag, wishlist toggle, accordions, related products |
+| `/shop` | `(shop)/shop/page.tsx` → `components/shop/ShopPageClient` | Server + client | API (`useCatalog`) | Grid or list of products, with loading and error states, and filters (`q`, `category`, `metal`, `gemstone`, `max`, `sort`, `view`) held in the URL query |
+| `/search` | `(shop)/search/page.tsx` | Client | API (`useCatalog`) | Text search over the catalogue using `filterProducts` |
+| `/product/[slug]` | `(shop)/product/[slug]/page.tsx` | Client | API (`useCatalog`) | Loading state, then the gallery, metal and size selection, quantity, add to bag, wishlist toggle, accordions, related products |
 | `/collections` | `(shop)/collections/page.tsx` | Server | Static | Lists `collections` from `data/products.ts` |
-| `/collections/[slug]` | `(shop)/collections/[slug]/page.tsx` | Server | Static | Products in one collection. Calls `notFound()` for unknown slugs. |
+| `/collections/[slug]` | `(shop)/collections/[slug]/page.tsx` | Server (`force-dynamic`) | Static description + API products (`fetchCatalog({ collection })`) | Products in one collection. Calls `notFound()` for unknown slugs, and says so if the products can't be loaded. |
 | `/cart` | `(shop)/cart/page.tsx` | Client | Cart store | Line items, quantity changes, subtotal, "Checkout" (signed-out users go to `/auth/login?from=/checkout`) |
-| `/wishlist` | `(shop)/wishlist/page.tsx` | Client | Wishlist store + static | Static products whose IDs are in the wishlist store |
+| `/wishlist` | `(shop)/wishlist/page.tsx` | Client | Wishlist store + API | Catalogue products whose IDs are in the wishlist store |
 | `/checkout` | `(shop)/checkout/page.tsx` | Client | API | Requires sign-in. Contact and shipping form, payment method choice, order creation, Razorpay or COD. See [API integration: checkout](api-integration.md#checkout-flow). |
 | `/checkout/success` | `(shop)/checkout/success/page.tsx` | Client | API | Reads `order_id`/`orderId` and `payment_id`/`razorpay_payment_id` from the query string. Polls `GET /api/orders/:id` up to 10 times. Clears the cart. The current checkout page shows its own confirmation and doesn't navigate here. |
 | `/auth/login` | `(shop)/auth/login/page.tsx` | Client | API | Email and password sign-in. Takes `?from=` for the redirect target. Admins are sent to `/admin/dashboard`. |
