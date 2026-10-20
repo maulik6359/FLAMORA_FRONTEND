@@ -3,23 +3,34 @@
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { api } from "@/lib/api";
+
 import { Reveal } from "@/components/motion/Reveal";
 
 export function Newsletter() {
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
       setError("Please enter a valid email address.");
       return;
     }
     setError(null);
-    setEmail("");
-    toast("Welcome to FLĀMORÁ", {
-      description: "Check your inbox for your private preview invitation.",
-    });
+    setBusy(true);
+    try {
+      await api.subscribeNewsletter({ email, source: "homepage" });
+      setEmail("");
+      toast("Welcome to FLĀMORÁ", {
+        description: "You're on the list for private previews.",
+      });
+    } catch (err) {
+      setError(err?.message || "We couldn't subscribe you just now. Please try again.");
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -51,7 +62,8 @@ export function Newsletter() {
               />
               <button
                 type="submit"
-                className="shrink-0 bg-gold px-8 py-3.5 text-[11px] tracking-[0.28em] uppercase text-ink transition-opacity hover:opacity-88"
+                disabled={busy}
+                className="shrink-0 bg-gold disabled:opacity-60 px-8 py-3.5 text-[11px] tracking-[0.28em] uppercase text-ink transition-opacity hover:opacity-88"
               >
                 Subscribe
               </button>

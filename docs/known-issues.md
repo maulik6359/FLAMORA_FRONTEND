@@ -1,6 +1,6 @@
 # Known Issues and Discrepancies (Frontend)
 
-While writing these docs, every claim was checked against the source. This page lists frontend problems and the places where the frontend and the backend API don't agree. Nothing here has been changed in the code. It's a record of how things stand today.
+While writing these docs, every claim was checked against the source. This page lists frontend problems and the places where the frontend and the backend API don't agree. It's a record of how things stand today. Issues fixed in the QA-audit fixes (2, 3, 4, 5, 6, 7, 12, 13 and S9; S5 partly) are marked **Resolved** and keep their numbers (see the root `qa/QA_AUDIT_REPORT.md`).
 
 ← Back to the [frontend documentation index](README.md)
 
@@ -40,11 +40,15 @@ Severity labels:
 
 ### 5. The `/orders` page never loads orders
 
-**Severity: Medium.** [`app/(shop)/orders/page.tsx`](../app/%28shop%29/orders/page.tsx) has its data-loading code commented out, so it always shows the "You haven't placed any orders yet" state. Order history does work on `/account`, which calls `GET /api/orders/mine`.
+**Status: Resolved** in the QA-audit fixes. The page loads `api.myOrders()` and has loading, signed-out, error and empty states.
+
+**Severity (when open): Medium.** [`app/(shop)/orders/page.tsx`](../app/%28shop%29/orders/page.tsx) had its data-loading code commented out, so it always showed the "You haven't placed any orders yet" state.
 
 ### 6. Contact, newsletter and inquiry forms aren't connected to the API
 
-**Severity: Medium.** The backend has `POST /api/contact` and `POST /api/newsletter/subscribe`, but none of the storefront forms call them:
+**Status: Resolved** in the QA-audit fixes. `/contact`, `components/HOME/Newsletter.tsx` and `components/InquiryOverlay.tsx` call the API and confirm only on success, and the register page subscribes when the newsletter box is ticked. The newsletter form in the shadowed `app/(shop)/page.tsx` still has no handler, but that page is never served ([issue 1](#1-two-pages-resolve-to-)).
+
+**Severity (when open): Medium.** The backend has `POST /api/contact` and `POST /api/newsletter/subscribe`, but none of the storefront forms called them:
 
 - `/contact`: shows a success toast and resets the form, with no network request.
 - `components/HOME/Newsletter.tsx`: validates the email format, then shows a toast.
@@ -53,15 +57,21 @@ Severity labels:
 
 ### 7. Coupons, taxes and shipping don't affect order totals
 
-**Severity: Medium.** The backend offers `POST /api/coupons/validate`, and admins can manage taxes, shipping methods, delivery charges and checkout settings. However, checkout never calls the coupon endpoint, and the backend sets an order's total to its subtotal.
+**Status: Resolved** in the QA-audit fixes. Checkout has a coupon field and a shipping choice, and shows the server's quote (`POST /api/orders/quote`): subtotal − coupon + shipping, with the included tax. The order is created with the same pricing. Delivery charges and the `checkout_*` settings are still not applied by the backend ([backend known issue 7](https://github.com/maulik6359/FLAMORA_BACK/blob/main/docs/known-issues.md#7-coupons-taxes-shipping-and-delivery-charges-dont-affect-order-totals)).
+
+**Severity (when open): Medium.** Checkout never called the coupon endpoint, and the backend set an order's total to its subtotal.
 
 ### 12. The admin Categories page shows only active categories
 
-**Severity: Low.** The backend has no `GET /api/admin/categories` endpoint. The admin page uses the public `GET /api/categories`, which returns active categories only.
+**Status: Resolved** in the QA-audit fixes. The page uses `GET /api/admin/categories`, shows inactive categories with a badge, and can activate or deactivate them.
+
+**Severity (when open): Low.** The admin page used the public `GET /api/categories`, which returns active categories only.
 
 ### 13. Prices use mixed currencies
 
-**Severity: Low.** The backend stores prices in `EUR` by default. `lib/format.ts` formats every amount as `AUD` (`en-AU`), while `formatPrice` in `lib/api.ts` uses the item's currency, defaulting to `EUR`. Checkout uses the AUD formatter.
+**Status: Resolved** in the QA-audit fixes. There's one currency: the admin `store_currency` setting (default `AUD`). The backend charges new orders in it, and the storefront formats prices with it (`lib/currency.ts`, `lib/format.ts`). Orders keep the currency they were charged in.
+
+**Severity (when open): Low.** The backend charged in `EUR` by default, while `lib/format.ts` formatted every amount as `AUD`.
 
 ### 16. Some CSS utility classes are used but never defined
 
@@ -92,4 +102,4 @@ These modules aren't imported, directly or indirectly, by any `page.tsx` or `lay
 | `app/(shop)/product/[slug]/ProductDetailClient.tsx` | An older API-backed product detail component. The live product page is `page.tsx`, which now also reads the API. |
 | `components/site/Navbar.tsx`, `Footer.tsx`, `ScrollExperience.tsx`, `SearchInput.tsx`, `ShopClient.tsx`, `SmoothScrollProvider.tsx` | An earlier storefront shell. `components/site/Hero.tsx` and `components/site/ProductCard.tsx` are still used by `app/(shop)/page.tsx`. |
 | `lib/api/auth.ts`, `lib/api/cart.ts`, `lib/api/products.ts`, `lib/api/wishlist.ts` | An Axios client for a **different** API shape (`/api/v1`, `/cart`, `/users/me`, `/products/slug/:slug`, `{ status, data }` envelopes) that the FLAMORA backend doesn't implement. |
-| `lib/api/orders.ts`, `lib/api/axios.ts`, `lib/auth-utils.ts` | Reachable only through the `/orders` page import. The call itself is commented out. |
+| `lib/api/orders.ts`, `lib/api/axios.ts`, `lib/auth-utils.ts` | No longer imported anywhere (the `/orders` page now uses `lib/api.ts`). |

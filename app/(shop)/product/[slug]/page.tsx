@@ -307,20 +307,24 @@ function ProductContent({ product, catalog }: { product: Product; catalog: Produ
                 {formatPrice(product.price)}
               </p>
 
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Star
-                  className="size-4 fill-gold text-gold"
-                  strokeWidth={1}
-                />
+              {reviewCount > 0 ? (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Star
+                    className="size-4 fill-gold text-gold"
+                    strokeWidth={1}
+                  />
 
-                <span>{rating}</span>
+                  <span>{rating.toFixed(1)}</span>
 
-                <span>·</span>
+                  <span>·</span>
 
-                <span>
-                  {reviewCount} reviews
-                </span>
-              </div>
+                  <span>
+                    {reviewCount} {reviewCount === 1 ? "review" : "reviews"}
+                  </span>
+                </div>
+              ) : (
+                <span className="text-xs text-muted-foreground">No reviews yet</span>
+              )}
 
               {product.bestseller && (
                 <span className="bg-gold-soft px-3 py-1.5 text-[9px] uppercase tracking-[0.2em] text-gold-deep">
@@ -703,26 +707,11 @@ function detectGemstone(product: { name?: string; description?: string; collecti
   return "None";
 }
 
-function getRating(product: Product) {
-  if (product.bestseller) {
-    return "4.9";
-  }
-
-  if (product.featured) {
-    return "4.8";
-  }
-
-  return "4.7";
+// Real aggregates from approved reviews (kept up to date by the API on moderation).
+function getRating(product: Product): number {
+  return product.rating ?? 0;
 }
 
-function getReviewCount(product: Product) {
-  if (product.bestseller) {
-    return 41;
-  }
-
-  if (product.featured) {
-    return 28;
-  }
-
-  return 16;
+function getReviewCount(product: Product): number {
+  return product.reviewCount ?? 0;
 }

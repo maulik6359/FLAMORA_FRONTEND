@@ -30,7 +30,7 @@ npm start                                  # node server.js
 curl http://localhost:8001/api/health      # {"status":"ok","service":"flamora-api"}
 ```
 
-The backend seeds an admin user, five categories, nine products and two payment methods on first boot.
+The backend seeds an admin user (when `ADMIN_EMAIL` and `ADMIN_PASSWORD` are set), five categories, the 12 storefront products, two payment methods and the `store_currency` setting (`AUD`) on first boot.
 
 ## 2. Configure and start the frontend
 
@@ -46,7 +46,7 @@ API_URL="http://127.0.0.1:8001/api"
 NEXT_PUBLIC_SITE_NAME="FLAMORA"
 ```
 
-Only `NEXT_PUBLIC_API_URL` is read by the code. See [Setup and configuration](setup-and-configuration.md#environment-variables).
+Only `NEXT_PUBLIC_API_URL` is read by the code (plus the optional `API_INTERNAL_URL`, not set by default). See [Setup and configuration](setup-and-configuration.md#environment-variables).
 
 Start the dev server:
 

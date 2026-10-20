@@ -1,3 +1,5 @@
+import { formatPrice as formatStorePrice } from "@/lib/format";
+
 export type Product = {
   _id: string;
   name: string;
@@ -18,7 +20,7 @@ export type Product = {
   isTrending: boolean;
 };
 
-export type Category = { _id: string; name: string; slug: string; description?: string; image?: string };
+export type Category = { _id: string; name: string; slug: string; description?: string; image?: string; isActive?: boolean };
 
 export type OrderItem = { product: string; name: string; image?: string; price: number; quantity: number };
 
@@ -31,10 +33,25 @@ export type Order = {
   currency: string;
   status: string;
   paymentStatus: string;
+  paymentMethod?: string;
   razorpayOrderId?: string;
   razorpayPaymentId?: string;
   shippingAddress?: any;
+  trackingNumber?: string;
   createdAt: string;
+};
+
+export type Quote = {
+  currency: string;
+  subtotal: number;
+  discount: number;
+  couponCode?: string;
+  shipping: number;
+  shippingMethod: { id: string; name: string } | null;
+  shippingOptions: { id: string; name: string; estimatedDays?: string; price: number }[];
+  taxRate: number;
+  taxIncluded: number;
+  total: number;
 };
 
 export type User = { id: string; name: string; email: string; role: "customer" | "admin"; phone?: string };
@@ -98,6 +115,12 @@ export const api = {
   me: (token: string) => request<{ user: User }>("/auth/me", {}, token),
   logout: (token: string) => request<{ ok: true }>("/auth/logout", { method: "POST" }, token),
 
+  // Engagement
+  contact: (data: { name?: string; email?: string; phone?: string; subject?: string; message: string }) =>
+    request<{ ok: true }>("/contact", { method: "POST", body: JSON.stringify(data) }),
+  subscribeNewsletter: (data: { email: string; name?: string; source?: string }) =>
+    request<{ ok: true }>("/newsletter/subscribe", { method: "POST", body: JSON.stringify(data) }),
+
   // Products
   products: (params: Record<string, any> = {}) => {
     const qs = new URLSearchParams(params as any).toString();
@@ -113,7 +136,9 @@ export const api = {
   removeWishlist: (id: string, token: string) => request(`/wishlist/${id}`, { method: "DELETE" }, token),
 
   // Orders
-  createOrder: (data: { items: { productId: string; quantity: number }[]; shippingAddress?: any }, token: string) =>
+  quoteOrder: (data: { items: { productId: string; quantity: number }[]; couponCode?: string; shippingMethodId?: string; country?: string }) =>
+    request<{ quote: Quote }>("/orders/quote", { method: "POST", body: JSON.stringify(data) }),
+  createOrder: (data: { items: { productId: string; quantity: number }[]; paymentMethod?: string; couponCode?: string; shippingMethodId?: string; shippingAddress?: any }, token: string) =>
     request<{ order: Order }>("/orders", { method: "POST", body: JSON.stringify(data) }, token),
   myOrders: (token: string) => request<{ orders: Order[] }>("/orders/mine", {}, token),
   getOrder: (id: string, token: string) => request<{ order: Order }>(`/orders/${id}`, {}, token),
@@ -142,8 +167,13 @@ export const api = {
     updateProduct: (id: string, data: any, token: string) =>
       request<{ product: Product }>(`/admin/products/${id}`, { method: "PATCH", body: JSON.stringify(data) }, token),
     deleteProduct: (id: string, token: string) => request(`/admin/products/${id}`, { method: "DELETE" }, token),
+    categories: (token: string) => request<{ categories: Category[] }>("/admin/categories", {}, token),
     createCategory: (data: any, token: string) =>
       request<{ category: Category }>("/admin/categories", { method: "POST", body: JSON.stringify(data) }, token),
+    updateCategory: (id: string, data: any, token: string) =>
+      request<{ category: Category }>(`/admin/categories/${id}`, { method: "PATCH", body: JSON.stringify(data) }, token),
+    updateCustomer: (id: string, data: { isBlocked?: boolean; role?: "customer" | "admin" }, token: string) =>
+      request<{ item: { id: string; isBlocked: boolean; role: string } }>(`/admin/customers/${id}`, { method: "PATCH", body: JSON.stringify(data) }, token),
     orders: (params: Record<string, any>, token: string) => {
       const qs = new URLSearchParams(params as any).toString();
       return request<{ items: (Order & { user: any })[]; total: number }>(`/admin/orders?${qs}`, {}, token);
@@ -153,10 +183,5 @@ export const api = {
   },
 };
 
-export function formatPrice(amount: number, currency = "EUR") {
-  try {
-    return new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 0 }).format(amount);
-  } catch {
-    return `${currency} ${amount.toFixed(0)}`;
-  }
-}
+/** An amount in a given currency (an order's own), defaulting to the store currency. */
+export const formatPrice = (amount: number, currency?: string) => formatStorePrice(amount, currency || undefined);

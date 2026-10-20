@@ -87,7 +87,7 @@ export default function AdminProductsPage() {
                   <p className="text-xs text-neutral-500">{p.slug}</p>
                 </td>
                 <td className="py-3 text-neutral-400">{typeof p.category === "object" ? p.category.name : "—"}</td>
-                <td className="py-3 text-right text-gold">{formatPrice(p.discountPrice || p.price, p.currency)}</td>
+                <td className="py-3 text-right text-gold">{formatPrice(p.discountPrice || p.price)}</td>
                 <td className="py-3 text-right">
                   <span className={p.stockQuantity <= 3 ? "text-amber-400" : "text-neutral-300"}>{p.stockQuantity}</span>
                 </td>

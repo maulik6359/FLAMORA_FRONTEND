@@ -7,7 +7,7 @@
 ```text
 frontend/
 ├── app/                          Next.js App Router
-│   ├── layout.tsx                Root layout: fonts, globals.css, <Toaster>, Vercel Analytics
+│   ├── layout.tsx                Root layout (async): fonts, globals.css, store currency, <Toaster>, Vercel Analytics
 │   ├── page.tsx                  "/" cinematic landing page (client component)
 │   ├── globals.css               Tailwind v4 entry, theme tokens, utility classes
 │   ├── three/page.tsx            "/three" Three.js showcase (outside both route groups)
@@ -40,7 +40,8 @@ frontend/
 │   ├── api/                      Legacy Axios client for a different API (unused)
 │   ├── store.ts                  useAuth store; re-exports cart and wishlist; useSearchStore
 │   ├── razorpay.ts               Checkout script loader + Razorpay types
-│   ├── format.ts                 formatPrice (AUD)
+│   ├── currency.ts               store currency (from /api/settings/public)
+│   ├── format.ts                 formatPrice (store currency)
 │   ├── catalog.ts                fetchCatalog() from /api/products, toStorefrontProduct(), getRelatedProducts()
 │   ├── filterProducts.ts         Client-side filtering and sorting of the loaded catalogue
 │   ├── products.ts, types.ts     Types and helpers for the legacy API client
@@ -64,7 +65,7 @@ Next.js route groups (folders in parentheses) share a layout without adding a UR
 
 | Layer | File | Wraps | Provides |
 | --- | --- | --- | --- |
-| Root | `app/layout.tsx` | everything | `<html>`/`<body>`, Google fonts (Playfair Display → `--font-heading`, Jost → `--font-sans`), `globals.css`, the Sonner `<Toaster position="bottom-right" richColors closeButton>`, `<Analytics />` when `NODE_ENV === "production"`, and default metadata (title template `%s \| FLĀMORÁ`) |
+| Root | `app/layout.tsx` | everything | An async server component. Reads the store currency (`fetchStoreCurrency()`, cached for 60 seconds) and renders `<StoreCurrency>` before the page. `<html>`/`<body>`, Google fonts (Playfair Display → `--font-heading`, Jost → `--font-sans`), `globals.css`, the Sonner `<Toaster position="bottom-right" richColors closeButton>`, `<Analytics />` when `NODE_ENV === "production"`, and default metadata (title template `%s \| FLĀMORÁ`) |
 | Storefront | `app/(shop)/layout.tsx` | all `(shop)` pages | `AnnouncementBar`, `Navbar`, `<main>`, `CartDrawer`, `Footer` |
 | Admin | `app/(admin)/layout.tsx` | all `/admin/*` pages | `AdminShell`: sidebar navigation, header, sign-out. On `/admin/login` and `/admin` it renders only the page. |
 | None | `app/page.tsx`, `app/three/page.tsx` | — | Pages outside the groups get only the root layout, and render their own header and footer |
@@ -72,7 +73,7 @@ Next.js route groups (folders in parentheses) share a layout without adding a UR
 ## Entry points and execution flow
 
 1. **Request arrives.** If the path matches `/admin/:path*`, the [edge middleware](components-and-routing.md#admin-route-protection-middlewarets) runs first and may redirect.
-2. **Root layout** renders fonts, global CSS and the toaster.
+2. **Root layout** reads the store currency, then renders fonts, global CSS and the toaster.
 3. **Group layout** renders the storefront chrome or `AdminShell`.
 4. **Page** renders. Almost every page is a **client component** (`"use client"`). The exceptions are:
    - `app/(shop)/page.tsx`: an async server component with `dynamic = "force-dynamic"`. It fetches `http://127.0.0.1:8001/api/products?featured=true&limit=4` and `/api/categories` on the server.

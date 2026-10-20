@@ -21,6 +21,8 @@ export interface ApiProduct {
   isFeatured?: boolean;
   isBestSeller?: boolean;
   isNewArrival?: boolean;
+  rating?: number;
+  reviewCount?: number;
 }
 
 export function toStorefrontProduct(p: ApiProduct): Product {
@@ -41,6 +43,8 @@ export function toStorefrontProduct(p: ApiProduct): Product {
     featured: !!p.isFeatured,
     bestseller: !!p.isBestSeller,
     isNew: !!p.isNewArrival,
+    rating: p.rating ?? 0,
+    reviewCount: p.reviewCount ?? 0,
   };
 }
 

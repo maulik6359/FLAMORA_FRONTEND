@@ -11,7 +11,7 @@ import { formatPrice } from "@/lib/format";
 import { useCartStore } from "@/store/cart";
 import { useAuth } from "@/lib/store";
 import { useHydrated } from "@/hooks/use-hydrated";
-import { api, PaymentMethod } from "@/lib/api";
+import { api, PaymentMethod, type Quote } from "@/lib/api";
 import { loadRazorpayScript } from "@/lib/razorpay";
 
 const fields = [
@@ -98,53 +98,16 @@ export default function CheckoutPage() {
       try {
         setLoadingMethods(true);
         const res = await api.paymentMethods();
-        let active = res.items || [];
-        if (active.length === 0) {
-          active = [
-            {
-              _id: "default-rzp",
-              name: "Razorpay (UPI / Cards / NetBanking)",
-              type: "card",
-              provider: "razorpay",
-              description: "Pay securely via UPI, Credit/Debit Cards, NetBanking or Mobile Wallets",
-              isActive: true,
-            },
-            {
-              _id: "default-cod",
-              name: "Cash on Delivery",
-              type: "cod",
-              provider: "cod",
-              description: "Pay with cash upon delivery of your luxury items",
-              isActive: true,
-            },
-          ];
-        }
+        // Only the methods the admin has enabled. An empty list shows "No payment methods
+        // currently active"; the backend also refuses an order for a disabled method.
+        const active = res.items || [];
         setPaymentMethods(active);
         const rzp = active.find((m) => m.provider === "razorpay");
-        setSelectedMethodId(rzp ? rzp._id : active[0]._id);
+        setSelectedMethodId(rzp ? rzp._id : active[0]?._id ?? "");
       } catch (err) {
         console.error("Failed to load payment methods:", err);
-        // Fallback default methods if API call encounters network issue
-        const fallback: PaymentMethod[] = [
-          {
-            _id: "fallback-rzp",
-            name: "Razorpay (UPI / Cards / NetBanking)",
-            type: "card",
-            provider: "razorpay",
-            description: "Pay securely via UPI, Credit/Debit Cards, NetBanking or Mobile Wallets",
-            isActive: true,
-          },
-          {
-            _id: "fallback-cod",
-            name: "Cash on Delivery",
-            type: "cod",
-            provider: "cod",
-            description: "Pay with cash upon delivery of your luxury items",
-            isActive: true,
-          },
-        ];
-        setPaymentMethods(fallback);
-        setSelectedMethodId(fallback[0]._id);
+        setPaymentMethods([]);
+        toast.error("Couldn't load payment methods. Please refresh the page.");
       } finally {
         setLoadingMethods(false);
       }
@@ -156,6 +119,51 @@ export default function CheckoutPage() {
   }, [user]);
 
   const subtotal = store.subtotal();
+
+  // Totals come from the API (POST /api/orders/quote), the same pricing the order is
+  // created with: subtotal − coupon + shipping, tax included. The local subtotal is
+  // only shown until the first quote arrives.
+  const [couponInput, setCouponInput] = useState("");
+  const [couponCode, setCouponCode] = useState<string | null>(null);
+  const [shippingMethodId, setShippingMethodId] = useState<string | undefined>(undefined);
+  const [quote, setQuote] = useState<Quote | null>(null);
+  const [quoting, setQuoting] = useState(false);
+  const cartKey = items.map((i) => `${i.id}:${i.quantity}`).join(",");
+
+  useEffect(() => {
+    if (items.length === 0) {
+      setQuote(null);
+      return;
+    }
+    let active = true;
+    setQuoting(true);
+    api
+      .quoteOrder({
+        items: items.map((i) => ({ productId: i.id, quantity: i.quantity })),
+        couponCode: couponCode ?? undefined,
+        shippingMethodId,
+        country: "Australia",
+      })
+      .then((r) => active && setQuote(r.quote))
+      .catch((err) => {
+        if (!active) return;
+        if (couponCode) {
+          // The coupon was refused: drop it and price the cart without it.
+          toast.error(err.message || "That coupon can't be used");
+          setCouponCode(null);
+        } else {
+          setQuote(null);
+          toast.error(err.message || "Couldn't calculate your total");
+        }
+      })
+      .finally(() => active && setQuoting(false));
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cartKey, couponCode, shippingMethodId]);
+
+  const total = quote?.total ?? subtotal;
 
   const handleFieldChange = (id: string, value: string) => {
     setFormData((prev) => ({ ...prev, [id]: value }));
@@ -192,6 +200,9 @@ export default function CheckoutPage() {
           productId: i.id,
           quantity: i.quantity,
         })),
+        paymentMethod: selectedMethod.provider,
+        couponCode: couponCode ?? undefined,
+        shippingMethodId: quote?.shippingMethod?.id,
         shippingAddress: {
           // Field names follow the backend AddressSchema.
           name: formData.name,
@@ -627,10 +638,10 @@ export default function CheckoutPage() {
                 ) : selectedMethod?.provider === "razorpay" ? (
                   <>
                     <Lock className="size-3.5" />
-                    <span>Pay {formatPrice(subtotal)} with Razorpay</span>
+                    <span>Pay {formatPrice(total)} with Razorpay</span>
                   </>
                 ) : (
-                  <span>Place Order ({formatPrice(subtotal)})</span>
+                  <span>Place Order ({formatPrice(total)})</span>
                 )}
               </button>
 
@@ -703,24 +714,91 @@ export default function CheckoutPage() {
                   })}
                 </ul>
 
-                <div className="mt-6 space-y-3 text-sm">
+                {/* Coupon */}
+                <form
+                  className="mt-6 flex gap-2"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const code = couponInput.trim();
+                    if (code) setCouponCode(code);
+                  }}
+                >
+                  <label htmlFor="checkout-coupon" className="sr-only">Coupon code</label>
+                  <input
+                    id="checkout-coupon"
+                    value={couponInput}
+                    onChange={(e) => setCouponInput(e.target.value)}
+                    placeholder="Coupon code"
+                    className="min-w-0 flex-1 border-b border-border bg-transparent py-2 text-sm uppercase focus:border-gold-deep focus:outline-none"
+                  />
+                  <button type="submit" disabled={quoting || !couponInput.trim()} className="text-[11px] uppercase tracking-[0.2em] text-gold-deep disabled:opacity-50">
+                    Apply
+                  </button>
+                </form>
+
+                {/* Shipping options (only when the store offers more than one) */}
+                {quote && quote.shippingOptions.length > 1 && (
+                  <fieldset className="mt-5 space-y-2 text-sm">
+                    <legend className="eyebrow">Shipping</legend>
+                    {quote.shippingOptions.map((option) => (
+                      <label key={option.id} className="flex cursor-pointer items-center justify-between gap-3 text-muted-foreground">
+                        <span className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            name="shipping-method"
+                            checked={quote.shippingMethod?.id === option.id}
+                            onChange={() => setShippingMethodId(option.id)}
+                          />
+                          {option.name}
+                          {option.estimatedDays ? ` · ${option.estimatedDays}` : ""}
+                        </span>
+                        <span>{option.price === 0 ? "Complimentary" : formatPrice(option.price)}</span>
+                      </label>
+                    ))}
+                  </fieldset>
+                )}
+
+                <div className="mt-6 space-y-3 text-sm" aria-live="polite">
                   <div className="flex justify-between text-muted-foreground">
                     <span>Subtotal</span>
 
-                    <span>{formatPrice(subtotal)}</span>
+                    <span>{formatPrice(quote?.subtotal ?? subtotal)}</span>
                   </div>
 
-                  <div className="flex justify-between text-muted-foreground">
-                    <span>Shipping</span>
+                  {quote && quote.discount > 0 && (
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>
+                        Coupon {quote.couponCode}{" "}
+                        <button type="button" onClick={() => { setCouponCode(null); setCouponInput(""); }} className="ml-1 text-[10px] uppercase tracking-[0.15em] underline">
+                          Remove
+                        </button>
+                      </span>
 
-                    <span className="text-gold-deep font-medium">Complimentary</span>
+                      <span>−{formatPrice(quote.discount)}</span>
+                    </div>
+                  )}
+
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Shipping{quote?.shippingMethod ? ` (${quote.shippingMethod.name})` : ""}</span>
+
+                    {!quote || quote.shipping === 0 ? (
+                      <span className="text-gold-deep font-medium">Complimentary</span>
+                    ) : (
+                      <span>{formatPrice(quote.shipping)}</span>
+                    )}
                   </div>
 
                   <div className="flex justify-between border-t border-border pt-4 font-display text-xl">
                     <span>Total</span>
 
-                    <span>{formatPrice(subtotal)}</span>
+                    <span>{quoting && !quote ? "…" : formatPrice(total)}</span>
                   </div>
+
+                  {quote && quote.taxIncluded > 0 && (
+                    <p className="text-right text-xs text-muted-foreground">
+                      Includes {formatPrice(quote.taxIncluded)} tax
+                    </p>
+                  )}
                 </div>
               </>
             )}
