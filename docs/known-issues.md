@@ -22,7 +22,9 @@ Severity labels:
 
 ### 2. Storefront catalogue IDs can't be ordered through the API
 
-**Severity: High.** The shop, product detail, search, collection and wishlist pages read products from the static file [`data/products.ts`](../data/products.ts), whose IDs look like `"product-001"`. The cart stores these IDs, and checkout sends them to `POST /api/orders` as `productId`. The backend expects MongoDB ObjectIds, so it can't process these IDs and the order request fails. As a result, checkout can't create an order for items added from the static catalogue. The fix is either to load the catalogue from `/api/products` or to map static items to backend product IDs.
+**Status: Resolved** in the QA-audit fixes. The static product list was moved into the database (same slugs, images, metals, sizes and collections), and every storefront page now reads `/api/products` through [`lib/catalog.ts`](../lib/catalog.ts). Cart lines and wishlist entries hold database IDs, and the persisted stores drop entries saved under the old static IDs (store version 1).
+
+**Severity (when open): High.** The shop, product detail, search, collection and wishlist pages read products from the static file [`data/products.ts`](../data/products.ts), whose IDs look like `"product-001"`. The cart stores these IDs, and checkout sends them to `POST /api/orders` as `productId`. The backend expects MongoDB ObjectIds, so it can't process these IDs and the order request fails. As a result, checkout can't create an order for items added from the static catalogue. The fix is either to load the catalogue from `/api/products` or to map static items to backend product IDs.
 
 ### 3. Checkout shipping address doesn't match the schema
 
@@ -87,7 +89,7 @@ These modules aren't imported, directly or indirectly, by any `page.tsx` or `lay
 
 | Module | Notes |
 | --- | --- |
-| `app/(shop)/product/[slug]/ProductDetailClient.tsx` | An API-backed product detail component. The live product page uses static data instead. |
+| `app/(shop)/product/[slug]/ProductDetailClient.tsx` | An older API-backed product detail component. The live product page is `page.tsx`, which now also reads the API. |
 | `components/site/Navbar.tsx`, `Footer.tsx`, `ScrollExperience.tsx`, `SearchInput.tsx`, `ShopClient.tsx`, `SmoothScrollProvider.tsx` | An earlier storefront shell. `components/site/Hero.tsx` and `components/site/ProductCard.tsx` are still used by `app/(shop)/page.tsx`. |
 | `lib/api/auth.ts`, `lib/api/cart.ts`, `lib/api/products.ts`, `lib/api/wishlist.ts` | An Axios client for a **different** API shape (`/api/v1`, `/cart`, `/users/me`, `/products/slug/:slug`, `{ status, data }` envelopes) that the FLAMORA backend doesn't implement. |
 | `lib/api/orders.ts`, `lib/api/axios.ts`, `lib/auth-utils.ts` | Reachable only through the `/orders` page import. The call itself is commented out. |

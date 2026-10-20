@@ -3,6 +3,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+import { isProductId } from "@/lib/catalog";
+
 interface WishlistState {
   ids: string[];
   add: (productId: string) => void;
@@ -48,6 +50,12 @@ export const useWishlistStore = create<WishlistState>()(
     }),
     {
       name: "flamora-wishlist",
+      // v1: product IDs are database IDs; IDs from the old static catalogue are dropped.
+      version: 1,
+      migrate: (persisted: any) => ({
+        ...persisted,
+        ids: (persisted?.ids ?? []).filter(isProductId),
+      }),
     },
   ),
-);
+);

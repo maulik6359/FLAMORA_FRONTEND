@@ -1,5 +1,4 @@
-import { products } from "@/data/products";
-import type { Product } from "@/types/commerce";
+import type { Product } from "@/data/products";
 
 export interface ProductQuery {
   q?: string;
@@ -11,7 +10,8 @@ export interface ProductQuery {
 
 export const MAX_PRICE = 13000;
 
-export function filterProducts(query: ProductQuery): any[] {
+/** Filters and sorts a catalogue loaded with useCatalog() / fetchCatalog(). */
+export function filterProducts(products: Product[], query: ProductQuery): any[] {
   const term = query.q?.trim().toLowerCase() ?? "";
 
   let list: any[] = products.filter((product) => {

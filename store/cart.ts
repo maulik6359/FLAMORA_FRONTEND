@@ -3,6 +3,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+import { isProductId } from "@/lib/catalog";
+
 export interface CartItem {
   id: string;
   slug: string;
@@ -177,9 +179,16 @@ export const useCartStore = create<CartState>()(
     }),
     {
       name: "flamora-cart",
+      // v1: product IDs are database IDs. Lines saved under the old static IDs
+      // ("product-001", …) can't be ordered, so they're dropped.
+      version: 1,
+      migrate: (persisted: any) => ({
+        ...persisted,
+        items: (persisted?.items ?? []).filter((item: CartItem) => isProductId(item.id)),
+      }),
       partialize: (state) => ({
         items: state.items,
       }),
     },
   ),
-);
+);

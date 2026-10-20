@@ -104,8 +104,10 @@ toast("Welcome to FLĀMORÁ", { description: "…" });
 | `lib/utils.ts` | `cn(...classes)` | `twMerge(clsx(...))` |
 | `lib/format.ts` | `formatPrice(value)` | Always **AUD**, `en-AU`, no decimals. Used by storefront pages, the cart, the drawer and filters. |
 | `lib/api.ts` | `formatPrice(amount, currency = "EUR")` | `en-US` with the given currency, no decimals. Falls back to `"<CUR> <amount>"`. Used by `/account`. |
-| `data/products.ts` | `formatPrice(…)` and catalogue helpers | Helpers for the static catalogue |
-| `lib/filterProducts.ts` | `filterProducts({ q, category, metal, max, sort })`, `MAX_PRICE = 13000` | Filters the static products. `sort` can be `price-asc`, `price-desc`, `newest`, or a default order. |
+| `data/products.ts` | `formatPrice(…)`, `getCollectionBySlug(…)` | Collection and price helpers (no product data) |
+| `lib/catalog.ts` | `fetchCatalog(params?)`, `toStorefrontProduct(apiProduct)`, `getRelatedProducts(list, product)`, `isProductId(id)` | Loads every active product from `/api/products`, page by page, and maps it to the storefront `Product` type |
+| `hooks/use-catalog.ts` | `useCatalog()` → `{ products, loading, error }` | One shared catalogue request per page, refreshed after 60 seconds |
+| `lib/filterProducts.ts` | `filterProducts(products, { q, category, metal, max, sort })`, `MAX_PRICE = 13000` | Filters a loaded catalogue. `sort` can be `price-asc`, `price-desc`, `newest`, or a default order. |
 | `lib/razorpay.ts` | `loadRazorpayScript()`, Razorpay option and response types | Injects `checkout.js` once and resolves `true` or `false` |
 | `hooks/use-hydrated.ts` | `useHydrated()` | `false` until the component mounts. Guards rendering of persisted state. |
 | `lib/store.ts` | `useAuth`, `useCart`, `useWishlist`, `useSearchStore` | See [State management](state-management.md) |

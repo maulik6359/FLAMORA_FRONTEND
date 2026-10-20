@@ -79,9 +79,6 @@ function AdminLoginContent() {
             {busy ? "Signing in…" : "Sign In"}
           </button>
         </form>
-        <p className="mt-8 text-[10px] tracking-[0.3em] uppercase text-neutral-600 text-center">
-          Default: admin@flamora.com · Admin@1234
-        </p>
       </motion.div>
     </div>
   );

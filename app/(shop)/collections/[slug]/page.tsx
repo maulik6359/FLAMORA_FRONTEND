@@ -7,8 +7,11 @@ import { ProductCard } from "@/components/product/ProductCard";
 import {
   collections,
   getCollectionBySlug,
-  getProductsByCollection,
+  type Product,
 } from "@/data/products";
+import { fetchCatalog } from "@/lib/catalog";
+
+export const dynamic = "force-dynamic"; // products come from the API on every request
 
 interface CollectionPageProps {
   params: Promise<{
@@ -58,7 +61,13 @@ export default async function CollectionPage({
     notFound();
   }
 
-  const items = getProductsByCollection(slug);
+  let items: Product[] = [];
+  let loadError = false;
+  try {
+    items = await fetchCatalog({ collection: slug });
+  } catch {
+    loadError = true;
+  }
 
   return (
     <main>
@@ -106,9 +115,10 @@ export default async function CollectionPage({
           </div>
         ) : (
           <div className="mt-14 border border-border p-10 text-center">
-            <p className="text-sm text-muted-foreground">
-              No jewellery is currently available in this
-              collection.
+            <p className="text-sm text-muted-foreground" role={loadError ? "alert" : undefined}>
+              {loadError
+                ? "We couldn't load this collection just now. Please try again in a moment."
+                : "No jewellery is currently available in this collection."}
             </p>
 
             <Link
