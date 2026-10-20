@@ -3,7 +3,6 @@ import { Suspense } from "react";
 
 import { ShopPageClient } from "@/components/shop/ShopPageClient";
 import Navbar from "@/components/layout/Navbar";
-import { Footer } from "@/components/layout/Footer";
 
 
 

@@ -1,15 +1,17 @@
 import Link from "next/link";
 
 import { Wordmark } from "@/components/brand/Wordmark";
+import { getPublicSettings } from "@/lib/content";
+import { fetchStoreCurrency } from "@/lib/currency";
 
 const footerColumns = [
   {
     title: "Client Care",
     links: [
       { label: "Contact Us", href: "/contact" },
-      { label: "Shipping & Delivery", href: "/shipping" },
-      { label: "Returns & Exchanges", href: "/returns" },
-      { label: "Jewellery Care", href: "/about" },
+      { label: "Shipping & Delivery", href: "/shipping-returns#shipping" },
+      { label: "Returns & Exchanges", href: "/shipping-returns#returns" },
+      { label: "Jewellery Care", href: "/jewellery-care" },
       { label: "Size Guide", href: "/size-guide" },
     ],
   },
@@ -24,18 +26,24 @@ const footerColumns = [
     ],
   },
   {
+    // Pages served by app/(shop)/[slug] from Admin → CMS Pages
     title: "Legal",
     links: [
-      { label: "Terms & Conditions", href: "/terms" },
-      { label: "Privacy Policy", href: "/privacy" },
+      { label: "Terms & Conditions", href: "/terms-of-service" },
+      { label: "Privacy Policy", href: "/privacy-policy" },
       { label: "Accessibility", href: "/accessibility" },
-      { label: "Cookie Policy", href: "/cookies" },
+      { label: "Cookie Policy", href: "/cookie-policy" },
     ],
   },
 ];
 
-export function Footer() {
+export async function Footer() {
   const currentYear = new Date().getFullYear();
+  const [settings, currency] = await Promise.all([getPublicSettings(), fetchStoreCurrency()]);
+  const socials = [
+    { label: "Instagram", href: settings.social_instagram || "https://instagram.com" },
+    { label: "Pinterest", href: settings.social_pinterest || "https://pinterest.com" },
+  ];
 
   return (
     <footer className="border-t border-black/10 bg-white text-[#171715]">
@@ -59,23 +67,17 @@ export function Footer() {
             </p>
 
             <div className="mt-8 flex flex-col gap-3 text-[11px] uppercase tracking-[0.18em]">
-              <a
-                href="https://instagram.com"
-                target="_blank"
-                rel="noreferrer noopener"
-                className="w-fit border-b border-transparent pb-1 transition hover:border-[#0B3629] hover:text-[#0B3629]"
-              >
-                Instagram
-              </a>
-
-              <a
-                href="https://pinterest.com"
-                target="_blank"
-                rel="noreferrer noopener"
-                className="w-fit border-b border-transparent pb-1 transition hover:border-[#0B3629] hover:text-[#0B3629]"
-              >
-                Pinterest
-              </a>
+              {socials.map((social) => (
+                <a
+                  key={social.label}
+                  href={social.href}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="w-fit border-b border-transparent pb-1 transition hover:border-[#0B3629] hover:text-[#0B3629]"
+                >
+                  {social.label}
+                </a>
+              ))}
             </div>
           </div>
 
@@ -121,28 +123,10 @@ export function Footer() {
         </div>
 
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-          {/* Currency */}
-          <div className="relative">
-            <label htmlFor="footer-currency" className="sr-only">
-              Select region and currency
-            </label>
-
-            <select
-              id="footer-currency"
-              defaultValue="AU"
-              className="h-11 min-w-[190px] appearance-none border border-black/15 bg-white px-4 pr-10 text-[10px] uppercase tracking-[0.18em] text-black/65 outline-none transition hover:border-[#0B3629] focus:border-[#0B3629]"
-            >
-              <option value="IN">India · INR</option>
-              <option value="AU">Australia · AUD</option>
-              <option value="NZ">New Zealand · NZD</option>
-              <option value="UK">United Kingdom · GBP</option>
-              <option value="US">United States · USD</option>
-            </select>
-
-            <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-xs">
-              ↓
-            </span>
-          </div>
+          {/* Currency: the shop prices and charges in one currency (Admin → Settings → Store) */}
+          <p className="flex h-11 items-center border border-black/15 px-4 text-[10px] uppercase tracking-[0.18em] text-black/65">
+            Prices in {currency}
+          </p>
 
           {/* Payment methods */}
           <div

@@ -3,6 +3,7 @@
 import { AnimatePresence, motion, useMotionValueEvent, useScroll, useTransform } from "framer-motion";
 import { useRef, useState } from "react";
 import { philosophySteps } from "@/data/site";
+import { scrollToSectionProgress } from "@/lib/utils";
 
 export default function PhilosophySection() {
   const ref = useRef<HTMLElement>(null);
@@ -10,7 +11,8 @@ export default function PhilosophySection() {
   const [step, setStep] = useState(0);
   const scale = useTransform(scrollYProgress, [0, 1], [1.06, 1.17]);
   const y = useTransform(scrollYProgress, [0, 1], ["0%", "3%"]);
-  const titleOpacity = useTransform(scrollYProgress, [0, 0.15, 0.25], [1, 0.65, 0.22]);
+  // Fully gone by step II so it never sits behind the step text.
+  const titleOpacity = useTransform(scrollYProgress, [0, 0.15, 0.24], [1, 0.45, 0]);
 
   useMotionValueEvent(scrollYProgress, "change", (v) => {
     setStep(Math.min(3, Math.floor(v * 4)));
@@ -26,7 +28,7 @@ export default function PhilosophySection() {
           className="absolute -inset-[5%] bg-contain bg-center bg-no-repeat"
         >
           <div
-            className="absolute inset-0 bg-contain bg-center bg-no-repeat"
+            className="absolute inset-0 bg-contain bg-center bg-no-repeat max-md:bg-cover"
             style={{ backgroundImage: "url('/assets/beyond.png')" }}
           />
         </motion.div>
@@ -47,13 +49,13 @@ export default function PhilosophySection() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -35 }}
               transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
-              className={`absolute w-[min(470px,38vw)] max-md:w-[78vw] ${
+              className={`absolute w-[min(470px,38vw)] max-md:w-[76vw] max-md:[text-shadow:0_2px_24px_rgba(0,0,0,.85)] ${
                 step === 0
                   ? "bottom-[10vh] left-[5.5vw] max-md:left-6"
                   : step === 1
-                    ? "right-[5.5vw] top-[20vh] max-md:right-6"
+                    ? "right-[5.5vw] top-[20vh] max-md:right-10"
                     : step === 2
-                      ? "bottom-[10vh] right-[7vw] max-md:right-6"
+                      ? "bottom-[10vh] right-[7vw] max-md:right-10"
                       : "left-[6vw] top-[21vh] max-md:left-6"
               }`}
             >
@@ -65,11 +67,20 @@ export default function PhilosophySection() {
           </AnimatePresence>
         </div>
 
-        <div className="absolute right-[2.4vw] top-1/2 z-30 flex -translate-y-1/2 flex-col items-center gap-[22px]">
-          {philosophySteps.map((_, i) => (
-            <span key={i} className={`h-[11px] w-[11px] rounded-full border border-white/70 ${i === step ? "bg-white" : "bg-transparent"}`} />
+        <nav aria-label="Philosophy steps" className="absolute right-[2.4vw] top-1/2 z-30 flex -translate-y-1/2 flex-col items-center gap-[10px] max-md:right-2">
+          {philosophySteps.map((s, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => scrollToSectionProgress(ref.current, (i + 0.1) / philosophySteps.length)}
+              aria-label={`Go to ${s.eyebrow}`}
+              aria-current={i === step ? "step" : undefined}
+              className="group grid h-6 w-6 place-items-center"
+            >
+              <span className={`h-[11px] w-[11px] rounded-full border border-white/70 transition group-hover:scale-125 ${i === step ? "bg-white" : "bg-transparent"}`} />
+            </button>
           ))}
-        </div>
+        </nav>
       </div>
     </section>
   );

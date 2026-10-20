@@ -67,3 +67,15 @@ export const menuItems = [
     href: "/shop?category=bracelets",
   },
 ] as const;
+
+// Smaller links under the main menu: the rest of the store, since the landing
+// page has no regular navbar.
+export const secondaryMenuItems = [
+  { label: "COLLECTIONS", href: "/collections" },
+  { label: "SEARCH", href: "/search" },
+  { label: "ABOUT", href: "/about" },
+  { label: "CONTACT", href: "/contact" },
+  { label: "ACCOUNT", href: "/account" },
+  { label: "WISHLIST", href: "/wishlist" },
+  { label: "CART", href: "/cart" },
+] as const;

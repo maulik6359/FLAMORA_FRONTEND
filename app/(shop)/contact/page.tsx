@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   CalendarDays,
@@ -16,6 +16,14 @@ import { api } from "@/lib/api";
 export default function ContactPage() {
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
+  const enquiryRef = useRef(null);
+
+  // Links like /contact?type=appointment pre-select that enquiry type.
+  useEffect(() => {
+    const type = new URLSearchParams(window.location.search).get("type");
+    const select = enquiryRef.current;
+    if (type && select && [...select.options].some((o) => o.value === type)) select.value = type;
+  }, []);
 
   // The message is only reported as sent once the API has stored it.
   const handleSubmit = async (event) => {
@@ -248,6 +256,7 @@ export default function ContactPage() {
 
                 <select
                   id="contact-enquiry"
+                  ref={enquiryRef}
                   defaultValue=""
                   required
                   className="mt-3 w-full border-b border-border bg-transparent py-3 text-sm text-foreground focus:border-gold-deep focus:outline-none"

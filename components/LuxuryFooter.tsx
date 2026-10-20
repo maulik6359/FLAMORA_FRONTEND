@@ -1,8 +1,34 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
+
+import { api } from "@/lib/api";
+
+// Admin → Settings (Store / Social). Until they load, or if unset, use the same
+// defaults as the contact page and the shop footer.
+const defaults = {
+  instagram: "https://instagram.com",
+  pinterest: "https://pinterest.com",
+  email: "flamoraandco@gmail.com",
+};
 
 export default function LuxuryFooter() {
+  const [links, setLinks] = useState(defaults);
+
+  useEffect(() => {
+    api
+      .publicSettings()
+      .then(({ settings }) =>
+        setLinks({
+          instagram: settings?.social_instagram || defaults.instagram,
+          pinterest: settings?.social_pinterest || defaults.pinterest,
+          email: settings?.store_email || defaults.email,
+        }),
+      )
+      .catch(() => {});
+  }, []);
+
   return (
     <footer className="min-h-[88vh] bg-[linear-gradient(180deg,#050505_0%,#050505_35%,#07110e_100%)] px-[5vw] pb-[4vh] pt-[9vh] text-white">
       <div className="border-b border-white/15 pb-[5vh] text-[9px] tracking-[0.28em] text-white">
@@ -25,14 +51,18 @@ export default function LuxuryFooter() {
             FOLLOW THE HOUSE
           </div>
           <a
-            href="#"
-            className="block font-serif text-[clamp(28px,2.5vw,44px)] transition hover:translate-x-2 hover:opacity-60"
+            href={links.instagram}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block w-fit font-serif text-[clamp(28px,2.5vw,44px)] transition hover:translate-x-2 hover:opacity-60"
           >
             I. Instagram
           </a>
           <a
-            href="#"
-            className="mt-3 block font-serif text-[clamp(28px,2.5vw,44px)] transition hover:translate-x-2 hover:opacity-60"
+            href={links.pinterest}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 block w-fit font-serif text-[clamp(28px,2.5vw,44px)] transition hover:translate-x-2 hover:opacity-60"
           >
             II. Pinterest
           </a>
@@ -48,7 +78,13 @@ export default function LuxuryFooter() {
             <br />
             APPOINTMENTS: PRIVATE VIEWING / WORLDWIDE
             <br />
-            EMAIL: PRIVATE CLIENT ENQUIRIES
+            EMAIL:{" "}
+            <a
+              href={`mailto:${links.email}`}
+              className="border-b border-white/40 transition hover:border-white"
+            >
+              {links.email}
+            </a>
             <p className="mt-5 max-w-[520px] leading-[1.8] text-white">
               For bespoke commissions, private appointments and collection
               enquiries, contact the house.

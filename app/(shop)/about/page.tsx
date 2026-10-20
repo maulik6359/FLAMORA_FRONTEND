@@ -276,8 +276,8 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* PROCESS */}
-      <section className="bg-ink text-ivory">
+      {/* PROCESS (footer "Craftsmanship" links here) */}
+      <section id="craftsmanship" className="scroll-mt-36 bg-ink text-ivory">
         <div className="mx-auto max-w-[1600px] px-4 py-20 md:px-8 md:py-28">
           <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20">
             <div>

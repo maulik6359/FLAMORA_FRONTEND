@@ -31,15 +31,27 @@ export default function HomePage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [inquiryOpen, setInquiryOpen] = useState(false);
 
+  // While an overlay is open: lock page scroll, close on Escape, and hand focus
+  // back to whatever opened it once it closes.
   useEffect(() => {
-    document.body.style.overflow = menuOpen || inquiryOpen ? "hidden" : "";
+    if (!menuOpen && !inquiryOpen) return;
+    const opener = document.activeElement as HTMLElement | null;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setMenuOpen(false);
+      setInquiryOpen(false);
+    };
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKey);
     return () => {
       document.body.style.overflow = "";
+      window.removeEventListener("keydown", onKey);
+      opener?.focus();
     };
   }, [menuOpen, inquiryOpen]);
 
   return (
-    <main className="bg-black text-white">
+    <main id="top" className="bg-black text-white">
       {/* <Hero />
        <CategoryGrid /> 
        <FeaturedCollection /> 
@@ -52,6 +64,7 @@ export default function HomePage() {
 
       <ScrollProgress />
       <LuxuryHeader
+        menuOpen={menuOpen}
         onInquire={() => setInquiryOpen(true)}
         onMenu={() => setMenuOpen(true)}
       />

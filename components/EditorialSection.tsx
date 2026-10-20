@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function EditorialSection() {
   return (
     <section className="grid min-h-screen grid-cols-[1.02fr_.98fr] items-center gap-[7vw] bg-flamora-ivory px-[5vw] py-[12vh] text-black max-md:grid-cols-1 max-md:px-6">
@@ -12,6 +14,12 @@ export default function EditorialSection() {
         <p className="max-w-[470px] text-[13px] leading-[1.85] text-[#6f685f]">
           Jewellery comes alive when it moves with the wearer. Light changes. Proportion shifts. The final design is completed by the person who chooses it.
         </p>
+        <Link
+          href="/shop"
+          className="mt-10 inline-flex h-12 items-center gap-3 rounded-full border border-black px-7 text-[10px] tracking-[0.24em] transition hover:bg-black hover:text-white"
+        >
+          SHOP THE COLLECTION <span aria-hidden="true">↗</span>
+        </Link>
       </div>
     </section>
   );

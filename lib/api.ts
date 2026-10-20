@@ -115,6 +115,9 @@ export const api = {
   me: (token: string) => request<{ user: User }>("/auth/me", {}, token),
   logout: (token: string) => request<{ ok: true }>("/auth/logout", { method: "POST" }, token),
 
+  // Store, SEO and social settings (social_instagram, store_email, …)
+  publicSettings: () => request<{ settings: Record<string, any> }>("/settings/public"),
+
   // Engagement
   contact: (data: { name?: string; email?: string; phone?: string; subject?: string; message: string }) =>
     request<{ ok: true }>("/contact", { method: "POST", body: JSON.stringify(data) }),
