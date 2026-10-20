@@ -1,0 +1,152 @@
+# API Integration
+
+← Back to the [frontend documentation index](README.md)
+
+The frontend talks to the Express backend described in the [API reference](https://github.com/maulik6359/FLAMORA_BACK/blob/main/docs/api-reference.md).
+
+## How requests reach the backend
+
+```text
+Browser  fetch("/api/products")  ──►  Next.js :3000  ──rewrite──►  http://127.0.0.1:8001/api/products
+Server   fetch("http://127.0.0.1:8001/api/…")  (app/(shop)/page.tsx only, called directly)
+```
+
+- The rewrite in `next.config.mjs` proxies `/api/:path*` to the backend, so browser calls are same-origin and don't need CORS.
+- `NEXT_PUBLIC_API_URL` (`/api`) is the base URL for `lib/api.ts`.
+
+## API clients
+
+### 1. `lib/api.ts` (the main client)
+
+A thin `fetch` wrapper plus a typed `api` object:
+
+```ts
+const API = process.env.NEXT_PUBLIC_API_URL || "/api";
+
+async function request<T>(path: string, init: RequestInit = {}, token?: string): Promise<T> {
+  const headers = { "Content-Type": "application/json", ...init.headers };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const res = await fetch(`${API}${path}`, { ...init, headers, credentials: "same-origin", cache: "no-store" });
+  const text = await res.text();
+  const json = text ? JSON.parse(text) : {};
+  if (!res.ok) throw new Error(json.message || `HTTP ${res.status}`);
+  return json as T;
+}
+```
+
+- Tokens are passed **explicitly** to each call. Nothing attaches them automatically.
+- A non-2xx response throws an `Error` whose message is the backend's `message` field.
+- A non-JSON body, such as Express's HTML 404 page, makes `JSON.parse` throw a `SyntaxError`.
+
+| Method | HTTP call | Used by |
+| --- | --- | --- |
+| `api.register(data)` | `POST /auth/register` | `/auth/register` |
+| `api.login(data)` | `POST /auth/login` | `/auth/login`, `/admin/login` |
+| `api.me(token)` | `GET /auth/me` | — (not called) |
+| `api.products(params)` | `GET /products?…` | unused `SearchInput` only |
+| `api.product(slug)` | `GET /products/:slug` | — |
+| `api.categories()` | `GET /categories` | `/admin/categories`, `ProductForm` |
+| `api.paymentMethods()` | `GET /payment-methods` | `/checkout` |
+| `api.wishlist` / `addWishlist` / `removeWishlist` | `GET`/`POST`/`DELETE /wishlist[/:id]` | unused `ProductDetailClient` only |
+| `api.createOrder(data, token)` | `POST /orders` | `/checkout` |
+| `api.myOrders(token)` | `GET /orders/mine` | `/account` |
+| `api.getOrder(id, token)` | `GET /orders/:id` | `/checkout/success` |
+| `api.createRazorpayOrder(orderId, token)` | `POST /payments/create-order` | `/checkout` |
+| `api.verifyRazorpayPayment(data, token)` | `POST /payments/verify` | `/checkout` |
+| `api.reportPaymentFailure(data, token)` | `POST /payments/failure` | `/checkout` |
+| `api.paymentStatus(orderId, token)` | `GET /payments/order/:orderId` | — |
+| `api.admin.dashboard(token)` | `GET /admin/dashboard/stats` | `/admin/dashboard` |
+| `api.admin.recentOrders(token)` | `GET /admin/dashboard/recent-orders` | `/admin/dashboard` |
+| `api.admin.products(params, token)` | `GET /admin/products?…` | `/admin/products` |
+| `api.admin.product(id, token)` | `GET /admin/products/:id` | `/admin/products/[id]/edit` |
+| `api.admin.createProduct` / `updateProduct` / `deleteProduct` | `POST`/`PATCH`/`DELETE /admin/products[/:id]` | `ProductForm`, `/admin/products` |
+| `api.admin.createCategory(data, token)` | `POST /admin/categories` | `/admin/categories` |
+| `api.admin.orders(params, token)` | `GET /admin/orders?…` | `/admin/orders` |
+| `api.admin.updateOrderStatus(id, data, token)` | `PATCH /admin/orders/:id/status` | `/admin/orders` |
+
+The file also exports the TypeScript types `Product`, `Category`, `Order`, `OrderItem`, `User`, `PaymentMethod`, `RazorpayOrderResponse`, `RazorpayVerifyPayload` and `RazorpayVerifyResponse`, along with `formatPrice(amount, currency = "EUR")`.
+
+### 2. Direct `fetch` calls in admin pages
+
+Most phase 2–4 admin pages (and `CrudAdmin`) call `fetch("/api/admin/…", { headers: { Authorization: \`Bearer ${token}\` } })` directly instead of going through `lib/api.ts`. The full mapping is in the [admin routes table](components-and-routing.md#admin-routes). These calls generally parse `res.json()` and either show `data.message` in a toast or ignore errors.
+
+### 3. `lib/api/*.ts` (a legacy Axios client, not used)
+
+An Axios instance (`lib/api/axios.ts`) that:
+
+- uses `baseURL` = `NEXT_PUBLIC_API_URL` or `http://localhost:5000/api/v1`,
+- sets a 15 s timeout,
+- adds a Bearer token from `localStorage["aurelia-token"]` to each request,
+- clears auth on a 401 and turns errors into `Error(message)`.
+
+Its modules target endpoints **this backend doesn't have**: `/auth/logout`, `/users/me`, `/users/updateMe`, `/cart/*`, `/products/slug/:slug`, `/products/:id/reviews`, `/reviews/:id`, `/orders/my-orders`, and a `POST /wishlist` with a body. Responses are expected in a `{ status, data: {...} }` envelope. Only `lib/api/orders.ts` is imported, by `/orders`, and its call is commented out. Treat this client as dead code.
+
+## Authentication flow
+
+```text
+1. User submits /auth/login (or /auth/register)
+2. api.login() → { token, user }
+3. useAuth.setAuth(user, token)
+      ├── persists to localStorage "flamora-auth"
+      └── sets cookies flamora_token, flamora_role (7 days, SameSite=Lax, not HttpOnly)
+4. Redirect: admin → /admin/dashboard, otherwise → ?from= target or /account
+5. Later calls: pages read `token` from useAuth and pass it to api.* or set the Authorization header
+6. Sign out: useAuth.clear() removes the state and cookies (no backend call)
+```
+
+Admin sign-in (`/admin/login`) uses the same `api.login`, but refuses to store the session when `user.role !== "admin"` and shows "This account is not authorized for the console". After a successful sign-in it goes to the `?from=` path, or `/admin/dashboard` by default.
+
+Authorization rules:
+
+| Layer | Check |
+| --- | --- |
+| `middleware.ts` (edge) | Checks that the `flamora_token` cookie exists and that `flamora_role === "admin"` for `/admin/*` |
+| `AdminShell` (client) | Redirects to `/admin/login` if the store has no `user` and no `token` |
+| `/checkout`, `/account` (client) | Redirect to `/auth/login` when there's no user |
+| Backend (authoritative) | `requireAuth` / `requireAdmin` on every protected endpoint |
+
+See also [Backend: authentication and authorization](https://github.com/maulik6359/FLAMORA_BACK/blob/main/docs/authentication-and-authorization.md).
+
+## Checkout flow
+
+Implemented in `app/(shop)/checkout/page.tsx`:
+
+1. **Gate.** Once hydrated, if there's no `user`, the page shows a toast and calls `router.replace("/auth/login?from=/checkout")`.
+2. **Load payment methods.** It calls `api.paymentMethods()`. If the list is empty, or the request fails, it falls back to two built-in options, Razorpay and Cash on Delivery. Razorpay is pre-selected when it's available.
+3. **Form.** Email, full name, address, city and postcode are rendered from a `fields` array as native `required` inputs (the email input has `type="email"`). Phone is a separate input. Email, name and phone are pre-filled from the signed-in user.
+4. **Submit.**
+   1. It checks that the bag isn't empty, a method is selected and a token exists.
+   2. It calls `api.createOrder` with:
+
+      ```json
+      {
+        "items": [{ "productId": "<cart item id>", "quantity": 1 }],
+        "shippingAddress": { "name": "...", "address": "...", "city": "...", "postcode": "...", "country": "Australia", "phone": "..." }
+      }
+      ```
+
+      These address keys don't match the backend `AddressSchema`. See [Known issues 3](known-issues.md#3-checkout-shipping-address-doesnt-match-the-schema).
+   3. **Razorpay:**
+      - It calls `api.createRazorpayOrder(order._id)`, then `loadRazorpayScript()`, then `new Razorpay(options).open()`.
+      - **Success handler:** calls `api.verifyRazorpayPayment({...response, orderId})`. On success it clears the cart and shows an inline confirmation with the order number and payment ID.
+      - **`modal.ondismiss`:** shows an info toast and calls `api.reportPaymentFailure({ error: "Payment modal closed by customer" })`.
+      - **`payment.failed`:** shows an error toast and calls `api.reportPaymentFailure({ error: resp.error })`.
+   4. **Any other method (COD):** it clears the cart and shows the confirmation straight away. The order stays `pending` / `unpaid`.
+5. A `statusMessage` banner shows progress ("Creating your order...", "Initializing Razorpay checkout...", "Verifying payment security signature...").
+
+`/checkout/success` is a separate page that confirms a payment by polling `GET /api/orders/:id`. The current checkout page shows its own confirmation and doesn't navigate there.
+
+## Server-side fetch
+
+`app/(shop)/page.tsx` fetches on the server, with no auth:
+
+| Call | Fallback |
+| --- | --- |
+| `GET http://127.0.0.1:8001/api/products?featured=true&limit=4` | `[]` on error or a non-OK response |
+| `GET http://127.0.0.1:8001/api/categories` | `[]` on error or a non-OK response |
+
+## Backend endpoints not used by the frontend
+
+`/api/auth/me`, `/api/auth/change-password`, `/api/products` (except on the server-rendered home page), `/api/products/:slug`, `/api/wishlist/*`, `/api/payments/order/:id`, `/api/payments/checkout/status/:id`, `/api/coupons/validate`, `/api/contact`, `/api/newsletter/subscribe`, `/api/faqs`, `/api/blogs*`, `/api/cms/:slug`, `/api/banners`, `/api/reviews*`, `/api/settings/public`, `/api/shipping-methods`, `/api/brands|collections|materials|gemstones` (public), `/api/admin/orders/:id`, the `/api/admin/reviews/:id/reply` endpoint, `/api/admin/contact-messages/:id/mark-read`, `/api/admin/newsletter/subscribers/:id` (DELETE), `/api/admin/notifications/:id/read` and `/api/admin/products/:productId/variants/:variantId` (PATCH).
+
+They're available for future storefront work.
