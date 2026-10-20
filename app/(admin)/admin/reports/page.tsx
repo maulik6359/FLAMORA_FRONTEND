@@ -26,11 +26,11 @@ export default function ReportsPage() {
       <div className="flex gap-3">
         <div>
           <label className="eyebrow block mb-1 text-neutral-500">From</label>
-          <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="px-4 py-2 bg-[#111] border border-neutral-900 focus:border-gold outline-none text-sm text-neutral-100" data-testid="reports-from" />
+          <input aria-label="From" type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="px-4 py-2 bg-[#111] border border-neutral-900 focus:border-gold outline-none text-sm text-neutral-100" data-testid="reports-from" />
         </div>
         <div>
           <label className="eyebrow block mb-1 text-neutral-500">To</label>
-          <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="px-4 py-2 bg-[#111] border border-neutral-900 focus:border-gold outline-none text-sm text-neutral-100" data-testid="reports-to" />
+          <input aria-label="To" type="date" value={to} onChange={(e) => setTo(e.target.value)} className="px-4 py-2 bg-[#111] border border-neutral-900 focus:border-gold outline-none text-sm text-neutral-100" data-testid="reports-to" />
         </div>
       </div>
 

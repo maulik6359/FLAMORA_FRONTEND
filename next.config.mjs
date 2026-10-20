@@ -1,8 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Type errors fail the build (tsc is clean). Lint stays off until an ESLint config exists.
   eslint: { ignoreDuringBuilds: true },
-  typescript: { ignoreBuildErrors: true },
   images: { unoptimized: true, remotePatterns: [{ protocol: "https", hostname: "**" }] },
   experimental: { serverActions: { allowedOrigins: ["*"] } },
   async rewrites() {

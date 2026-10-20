@@ -37,7 +37,7 @@ export default function NewsletterPage() {
       });
       const d = await r.json();
       if (!r.ok) throw new Error(d.message);
-      toast.success(`Sent to ${d.recipientCount} subscribers (MOCKED delivery)`);
+      toast.success(`Recorded for ${d.recipientCount} subscribers. No email was sent: no mail service is configured.`);
       (e.currentTarget as HTMLFormElement).reset();
       loadCampaigns();
     } catch (err: any) { toast.error(err.message); } finally { setBusy(false); }
@@ -90,15 +90,15 @@ export default function NewsletterPage() {
         <form onSubmit={send} className="bg-[#111] border border-neutral-900 p-6 space-y-4 max-w-2xl" data-testid="campaign-form">
           <div>
             <label className="eyebrow block mb-2 text-neutral-400">Subject *</label>
-            <input name="subject" required placeholder="New Arrivals — Summer 2026" className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 focus:border-gold outline-none text-sm text-neutral-100" data-testid="campaign-subject" />
+            <input aria-label="Subject" name="subject" required placeholder="New Arrivals — Summer 2026" className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 focus:border-gold outline-none text-sm text-neutral-100" data-testid="campaign-subject" />
           </div>
           <div>
             <label className="eyebrow block mb-2 text-neutral-400">Content (HTML) *</label>
-            <textarea name="htmlContent" required rows={10} placeholder="<h1>Bonjour</h1><p>Introducing our summer collection…</p>" className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 focus:border-gold outline-none text-sm text-neutral-100 font-mono" data-testid="campaign-content" />
+            <textarea aria-label="Content (HTML)" name="htmlContent" required rows={10} placeholder="<h1>Bonjour</h1><p>Introducing our summer collection…</p>" className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 focus:border-gold outline-none text-sm text-neutral-100 font-mono" data-testid="campaign-content" />
           </div>
           <div>
             <label className="eyebrow block mb-2 text-neutral-400">Segment</label>
-            <select name="segment" defaultValue="all" className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 focus:border-gold outline-none text-sm text-neutral-100">
+            <select aria-label="Segment" name="segment" defaultValue="all" className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 focus:border-gold outline-none text-sm text-neutral-100">
               <option value="all">All Subscribers</option>
             </select>
           </div>

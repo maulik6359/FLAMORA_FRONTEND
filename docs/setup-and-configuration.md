@@ -30,10 +30,10 @@ There's no test script.
 
 | Variable | Value in repo | Read by code? | Purpose |
 | --- | --- | --- | --- |
-| `NEXT_PUBLIC_API_URL` | `/api` | **Yes**: `lib/api.ts` (falls back to `/api`) and `lib/api/axios.ts` (falls back to `http://localhost:5000/api/v1`) | Base URL for browser API calls. Inlined into the client bundle at build time. |
-| `API_URL` | `http://127.0.0.1:8001/api` | **No** | Not referenced anywhere. The server-side fetches in `app/(shop)/page.tsx` hard-code `http://127.0.0.1:8001/api`. |
+| `NEXT_PUBLIC_API_URL` | `/api` | **Yes**: `lib/api.ts` and `lib/catalog.ts` (both fall back to `/api`) | Base URL for browser API calls. Inlined into the client bundle at build time. |
+| `API_URL` | `http://127.0.0.1:8001/api` | **No** | Not referenced anywhere. Server-side fetches use `API_INTERNAL_URL` instead. |
 | `NEXT_PUBLIC_SITE_NAME` | `FLAMORA` | **No** | Not referenced. The brand name is hard-coded in components. |
-| `API_INTERNAL_URL` | not set | **Yes** (optional): `lib/catalog.ts`, `lib/currency.ts` | Backend base URL for **server-side** fetches (catalogue on server-rendered pages, store currency in the root layout). Defaults to `http://127.0.0.1:8001`. |
+| `API_INTERNAL_URL` | not set | **Yes** (optional): `lib/catalog.ts`, `lib/currency.ts`, `middleware.ts`, `app/(shop)/product/[slug]/page.tsx` | Backend base URL for **server-side** fetches (catalogue on server-rendered pages, store currency in the root layout, the admin session check, the product 404 check). Defaults to `http://127.0.0.1:8001`. |
 
 `process.env.NODE_ENV` decides whether `<Analytics />` (Vercel Web Analytics) is rendered. It's rendered only in production.
 
@@ -44,8 +44,8 @@ There's no test script.
 ```js
 const nextConfig = {
   reactStrictMode: true,
+  // Type errors fail the build (tsc is clean). Lint stays off until an ESLint config exists.
   eslint: { ignoreDuringBuilds: true },
-  typescript: { ignoreBuildErrors: true },
   images: { unoptimized: true, remotePatterns: [{ protocol: "https", hostname: "**" }] },
   experimental: { serverActions: { allowedOrigins: ["*"] } },
   async rewrites() {
@@ -59,7 +59,7 @@ const nextConfig = {
 | `rewrites` | Every `/api/*` request to the Next.js server is proxied to the backend on `127.0.0.1:8001`. This is why browser code can call relative `/api/...` URLs. **The backend host and port are hard-coded here.** |
 | `images.unoptimized` | `next/image` serves the original files with no optimization pipeline |
 | `images.remotePatterns` | Allows any HTTPS image host |
-| `eslint.ignoreDuringBuilds`, `typescript.ignoreBuildErrors` | Lint and type errors don't fail `next build` |
+| `eslint.ignoreDuringBuilds` | Lint doesn't run during `next build` (there's no ESLint config). Type errors **do** fail the build. |
 | `experimental.serverActions.allowedOrigins: ["*"]` | Server Actions accept any origin. The app doesn't define any Server Actions. |
 | `reactStrictMode` | React strict mode. Effects run twice in development. |
 
@@ -85,8 +85,8 @@ npm run prod          # serves on 0.0.0.0:3000
 
 Before you build, keep in mind:
 
-- The [route conflict on `/`](known-issues.md#1-two-pages-resolve-to-) has to be fixed before the build will finish.
-- `app/(shop)/page.tsx` is marked `force-dynamic`, and at request time it fetches from `http://127.0.0.1:8001`. That only works when the backend runs on the same host.
+- `next build` type-checks the project, so fix any `tsc` errors first.
+- Server-side fetches (root layout, collection and product pages, middleware) call the backend at `API_INTERNAL_URL` (default `http://127.0.0.1:8001`). Set it when the backend runs on another host.
 
 ## Deployment
 

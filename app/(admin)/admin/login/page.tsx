@@ -51,7 +51,7 @@ function AdminLoginContent() {
         <form onSubmit={onSubmit} className="space-y-5">
           <div>
             <label className="eyebrow block mb-2 text-neutral-400">Email</label>
-            <input
+            <input aria-label="Email"
               name="email"
               type="email"
               required
@@ -61,7 +61,7 @@ function AdminLoginContent() {
           </div>
           <div>
             <label className="eyebrow block mb-2 text-neutral-400">Password</label>
-            <input
+            <input aria-label="Password"
               name="password"
               type="password"
               required

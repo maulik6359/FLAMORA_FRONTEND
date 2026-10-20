@@ -75,6 +75,7 @@ export default function AdminOrdersPage() {
                 <td className="py-3"><span className="px-2 py-0.5 text-[10px] uppercase tracking-wider bg-neutral-900 text-neutral-300">{o.status}</span></td>
                 <td className="py-3 pr-6 text-right">
                   <select
+                    aria-label={`Status of order ${o.orderNumber}`}
                     value={o.status}
                     onChange={(e) => changeStatus(o._id, e.target.value)}
                     className="bg-neutral-950 border border-neutral-800 text-neutral-300 text-xs px-2 py-1 focus:border-gold outline-none"

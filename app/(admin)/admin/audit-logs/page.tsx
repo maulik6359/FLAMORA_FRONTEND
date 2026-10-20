@@ -71,6 +71,7 @@ export default function AuditLogsPage() {
       <div className="flex flex-wrap items-center gap-3 bg-[#111] border border-neutral-900 p-4">
         <Filter size={14} className="text-neutral-500" />
         <input
+          aria-label="Filter by module"
           value={module}
           onChange={(e) => setModule(e.target.value)}
           placeholder="Filter by module (e.g. products, settings)"
@@ -78,6 +79,7 @@ export default function AuditLogsPage() {
           data-testid="audit-filter-module"
         />
         <select
+          aria-label="Filter by action"
           value={action}
           onChange={(e) => setAction(e.target.value)}
           className="px-3 py-2 bg-neutral-950 border border-neutral-800 focus:border-gold outline-none text-sm text-neutral-100"

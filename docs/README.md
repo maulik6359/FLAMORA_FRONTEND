@@ -48,12 +48,12 @@ Backend documentation, including the full API reference, lives in the backend re
 | Class utilities | `clsx`, `tailwind-merge` | |
 | State management | `zustand` (with `persist` middleware) | `^5.0.1` |
 | Animation | `framer-motion` | `^11.11.10` |
-| Smooth scrolling | `lenis` | `^1.3.25` (used only by unreachable `components/site/*` code) |
+| Smooth scrolling | `lenis` | `^1.3.25` (installed, no longer imported) |
 | 3D | `three`, `@react-three/fiber` | `^0.186.1`, `^8.17.10` |
 | Charts | `recharts` | `^3.9.2` (admin analytics) |
 | Notifications | `sonner` | `^1.7.0` |
 | Icons | `lucide-react` | `^0.454.0` |
-| HTTP | `fetch` (main client). `axios` (legacy, unused client). | `axios ^1.20.0` |
+| HTTP | `fetch` (`lib/api.ts`, `lib/catalog.ts`). `axios` is installed but no longer imported. | `axios ^1.20.0` |
 | Analytics | `@vercel/analytics` | `^2.0.1` (production builds only) |
 | Fonts | `next/font/google`: Playfair Display, Jost | |
 | Installed but unused | `react-hook-form`, `@hookform/resolvers`, `zod`, `js-cookie` | No imports found in the source |
@@ -71,9 +71,9 @@ The backend must be running on `127.0.0.1:8001` for API calls to work. See [Gett
 
 | Area | Data source | Notes |
 | --- | --- | --- |
-| Home (`/`) | Static content, or the API (see [route conflict](known-issues.md#1-two-pages-resolve-to-)) | Cinematic landing page with video, 3D and editorial sections |
+| Home (`/`) | Static content (`app/page.tsx`) | Cinematic landing page with video, 3D and editorial sections |
 | Shop, search, product detail, collections, wishlist | API `/api/products` (through `lib/catalog.ts`) | Client-side filtering and sorting of the loaded catalogue |
-| Cart, wishlist | Zustand stores persisted to `localStorage` | Wishlist isn't synced with the API wishlist |
+| Cart, wishlist | Zustand stores persisted to `localStorage` | For signed-in customers the wishlist syncs with the account (`/api/wishlist`); signing out clears both from the device |
 | Auth (login, register) | API `/api/auth/*` | JWT stored in Zustand and mirrored into cookies |
 | Checkout | API `/api/orders/quote`, `/api/orders`, `/api/payments/*`, `/api/payment-methods` | Coupon, shipping choice and server-quoted totals; Razorpay modal or Cash on Delivery |
 | Account | API `/api/orders/mine` | Shows profile basics and order history |

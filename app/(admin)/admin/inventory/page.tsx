@@ -78,7 +78,7 @@ export default function InventoryPage() {
       </div>
 
       <div className="flex gap-3">
-        <input value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => e.key === "Enter" && load()} placeholder="Search by name…"
+        <input aria-label="Search products" value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => e.key === "Enter" && load()} placeholder="Search by name…"
           className="flex-1 px-4 py-2.5 bg-[#111] border border-neutral-900 focus:border-gold outline-none text-sm text-neutral-100"
           data-testid="inventory-search" />
         <button onClick={() => setLowOnly(!lowOnly)} className={`px-6 py-2.5 text-[10px] tracking-[0.3em] uppercase border ${lowOnly ? "bg-amber-500 text-neutral-950 border-amber-500" : "border-neutral-800 text-neutral-400 hover:border-gold"}`} data-testid="filter-low-stock">
@@ -141,7 +141,7 @@ export default function InventoryPage() {
             <div className="mt-6 space-y-4">
               <div>
                 <label className="eyebrow block mb-2 text-neutral-400">Type</label>
-                <select name="type" required className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 focus:border-gold outline-none text-sm text-neutral-100" data-testid="adjust-type">
+                <select aria-label="Type" name="type" required className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 focus:border-gold outline-none text-sm text-neutral-100" data-testid="adjust-type">
                   <option value="add">Add (shipment received)</option>
                   <option value="subtract">Subtract (damage/return)</option>
                   <option value="set">Set to exact value</option>
@@ -149,15 +149,15 @@ export default function InventoryPage() {
               </div>
               <div>
                 <label className="eyebrow block mb-2 text-neutral-400">Quantity</label>
-                <input name="quantity" type="number" required min={0} className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 focus:border-gold outline-none text-sm text-neutral-100" data-testid="adjust-quantity" />
+                <input aria-label="Quantity" name="quantity" type="number" required min={0} className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 focus:border-gold outline-none text-sm text-neutral-100" data-testid="adjust-quantity" />
               </div>
               <div>
                 <label className="eyebrow block mb-2 text-neutral-400">Reason</label>
-                <input name="reason" placeholder="e.g. Shipment PO-20260701" className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 focus:border-gold outline-none text-sm text-neutral-100" data-testid="adjust-reason" />
+                <input aria-label="Reason" name="reason" placeholder="e.g. Shipment PO-20260701" className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 focus:border-gold outline-none text-sm text-neutral-100" data-testid="adjust-reason" />
               </div>
               <div>
                 <label className="eyebrow block mb-2 text-neutral-400">Reference ID</label>
-                <input name="referenceId" placeholder="PO number, RMA, etc." className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 focus:border-gold outline-none text-sm text-neutral-100" />
+                <input aria-label="Reference ID" name="referenceId" placeholder="PO number, RMA, etc." className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 focus:border-gold outline-none text-sm text-neutral-100" />
               </div>
             </div>
             <div className="mt-8 flex gap-3">

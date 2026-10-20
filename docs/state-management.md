@@ -25,9 +25,10 @@ type AuthState = {
 };
 ```
 
-- `setAuth` saves the user and token, and **also writes two cookies**, `flamora_token` and `flamora_role`, with `path=/; max-age=604800 (7 days); samesite=lax`. The edge [middleware](components-and-routing.md#admin-route-protection-middlewarets) reads these cookies, because it can't see `localStorage`.
+- `setAuth` saves the user and token, and **also writes two cookies**, `flamora_token` and `flamora_role`, with `path=/; max-age=604800 (7 days); samesite=lax`. The edge [middleware](components-and-routing.md#admin-route-protection-middlewarets) can't see `localStorage`, so it reads `flamora_token` and verifies it with `GET /api/auth/me`. It ignores `flamora_role`, which any client can write.
 - `clear` removes both cookies and resets the state. Checkout calls it when the server rejects the session.
-- `logout` calls `POST /api/auth/logout`, which revokes every token of the user on the server, and then `clear`. Failure to reach the server doesn't block the local sign-out. It's called by the sign-out buttons in `/account` and `AdminShell`.
+- `logout` calls `POST /api/auth/logout`, which revokes every token of the user on the server, and then `clear`. Failure to reach the server doesn't block the local sign-out. It also **empties the cart and the wishlist** on the device, so nothing personal is left on a shared device (the wishlist stays on the account). It's called by the sign-out buttons in `/account` and `AdminShell`.
+- `setAuth`, and rehydrating a saved session (`onRehydrateStorage`), start a wishlist sync (see below).
 - Nothing refreshes or re-checks the token on load. A token that expired on the server stays in the store until an API call fails. There's also no automatic sign-out on a 401 in the main client.
 
 ### `useCartStore`
@@ -56,7 +57,11 @@ The store is persisted with `version: 1`. Its `migrate` step drops lines whose `
 { ids: string[]; add; remove; toggle; has; clear; set }
 ```
 
-This store is entirely local. The backend wishlist endpoints (`/api/wishlist`) **aren't** called by any reachable code. `lib/api.ts` defines `wishlist`, `addWishlist` and `removeWishlist`, but only the unused `ProductDetailClient` calls them.
+For guests the store is device-local. For a signed-in customer, `lib/store.ts` keeps it in step with the account's wishlist (`/api/wishlist`):
+
+- On sign-in, and on reload with a saved session, the device's items are added to the account, and the account's list (active products only) replaces the local one.
+- While signed in, a `useWishlistStore.subscribe` listener sends every add and remove to the API.
+- Signing out clears the local list.
 
 ## Hydration handling
 

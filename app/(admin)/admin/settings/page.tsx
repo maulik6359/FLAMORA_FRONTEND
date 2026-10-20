@@ -161,9 +161,9 @@ export default function SettingsPage() {
                   <div key={f.name} className={span}>
                     <label className="eyebrow block mb-2 text-neutral-400">{f.label}</label>
                     {f.type === "textarea" ? (
-                      <textarea name={f.name} rows={3} defaultValue={val} placeholder={f.placeholder} className={cls} data-testid={`settings-field-${f.name}`} />
+                      <textarea aria-label={f.label} name={f.name} rows={3} defaultValue={val} placeholder={f.placeholder} className={cls} data-testid={`settings-field-${f.name}`} />
                     ) : (
-                      <input
+                      <input aria-label={f.label}
                         name={f.name}
                         type={f.type || "text"}
                         defaultValue={val}

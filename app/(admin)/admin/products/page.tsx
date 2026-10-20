@@ -49,6 +49,7 @@ export default function AdminProductsPage() {
 
       <div className="flex gap-3">
         <input
+          aria-label="Search products"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && load()}

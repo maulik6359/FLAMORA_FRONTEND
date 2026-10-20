@@ -129,20 +129,20 @@ export function CrudAdmin({
                 const span = f.colSpan === 2 || f.type === "textarea" ? "col-span-2" : "col-span-1";
                 return (
                   <div key={f.name} className={span}>
-                    <label className="eyebrow block mb-2 text-neutral-400">{f.label}{f.required && " *"}</label>
+                    <label htmlFor={`crud-${f.name}`} className="eyebrow block mb-2 text-neutral-400">{f.label}{f.required && " *"}</label>
                     {f.type === "textarea" ? (
-                      <textarea name={f.name} rows={3} defaultValue={val} required={f.required} className={cls} placeholder={f.placeholder} />
+                      <textarea id={`crud-${f.name}`} name={f.name} rows={3} defaultValue={val} required={f.required} className={cls} placeholder={f.placeholder} />
                     ) : f.type === "select" ? (
-                      <select name={f.name} defaultValue={val} required={f.required} className={cls}>
+                      <select id={`crud-${f.name}`} name={f.name} defaultValue={val} required={f.required} className={cls}>
                         <option value="">Select…</option>
                         {f.options?.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
                       </select>
                     ) : f.type === "checkbox" ? (
                       <label className="flex items-center gap-2 text-sm text-neutral-300">
-                        <input type="checkbox" name={f.name} defaultChecked={editing ? !!val : true} /> Enabled
+                        <input id={`crud-${f.name}`} type="checkbox" name={f.name} defaultChecked={editing ? !!val : true} /> Enabled
                       </label>
                     ) : (
-                      <input name={f.name} type={f.type || "text"} defaultValue={val} required={f.required} className={cls} placeholder={f.placeholder} />
+                      <input id={`crud-${f.name}`} name={f.name} type={f.type || "text"} defaultValue={val} required={f.required} className={cls} placeholder={f.placeholder} />
                     )}
                   </div>
                 );
