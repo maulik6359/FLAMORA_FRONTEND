@@ -8,11 +8,10 @@ Routing uses the Next.js **App Router**, where folders under `app/` map to URL s
 
 | URL | File | Type | Data source | Description |
 | --- | --- | --- | --- | --- |
-| `/` | `app/page.tsx` | Client | Static | Cinematic landing page: `ScrollProgress`, `LuxuryHeader`, `HeroSection`, `PhilosophySection`, `MakingSection`, `VideoSection`, `EditorialSection`, `LuxuryFooter`, plus the `MenuOverlay` and `InquiryOverlay` overlays. **Conflicts** with the next row. |
-| `/` | `app/(shop)/page.tsx` | Server (`force-dynamic`) | API | `site/Hero`, 4 featured products (`/api/products?featured=true&limit=4`), category tiles (`/api/categories`), maison story, newsletter form (no handler) |
+| `/` | `app/page.tsx` | Client | Static | Cinematic landing page: `ScrollProgress`, `LuxuryHeader`, `HeroSection`, `PhilosophySection`, `MakingSection`, `VideoSection`, `EditorialSection`, `LuxuryFooter`, plus the `MenuOverlay` and `InquiryOverlay` overlays. The only page at `/` (the shadowed `app/(shop)/page.tsx` was removed). |
 | `/shop` | `(shop)/shop/page.tsx` → `components/shop/ShopPageClient` | Server + client | API (`useCatalog`) | Grid or list of products, with loading and error states, and filters (`q`, `category`, `metal`, `gemstone`, `max`, `sort`, `view`) held in the URL query |
 | `/search` | `(shop)/search/page.tsx` | Client | API (`useCatalog`) | Text search over the catalogue using `filterProducts` |
-| `/product/[slug]` | `(shop)/product/[slug]/page.tsx` | Client | API (`useCatalog`) | Loading state, then the gallery, metal and size selection, quantity, add to bag, wishlist toggle, accordions, related products |
+| `/product/[slug]` | `(shop)/product/[slug]/page.tsx` (server) → `ProductPageClient.tsx` (client) | Server check + client | API (`GET /api/products/:slug` on the server, then `useCatalog`) | An unknown or inactive slug is a real **HTTP 404** with the branded `not-found.tsx` ("Piece not found"). Otherwise: loading state, then the gallery, metal and size selection, quantity, add to bag, wishlist toggle, accordions, related products |
 | `/collections` | `(shop)/collections/page.tsx` | Server | Static | Lists `collections` from `data/products.ts` |
 | `/collections/[slug]` | `(shop)/collections/[slug]/page.tsx` | Server (`force-dynamic`) | Static description + API products (`fetchCatalog({ collection })`) | Products in one collection. Calls `notFound()` for unknown slugs, and says so if the products can't be loaded. |
 | `/cart` | `(shop)/cart/page.tsx` | Client | Cart store | Line items, quantity changes, subtotal, "Checkout" (signed-out users go to `/auth/login?from=/checkout`) |
@@ -69,20 +68,21 @@ All of these live under `app/(admin)/admin/` and render inside `AdminShell`.
 | `/admin/settings` | Tabbed form (Store, SEO, Social, Checkout) that saves one group at a time | `GET /api/admin/settings`, `PATCH /api/admin/settings/:group` |
 | `/admin/audit-logs` | Filterable table with expandable change payloads | `GET /api/admin/audit-logs` |
 
-The sidebar (`AdminShell`) groups these pages under **Overview**, **Catalogue**, **Commerce**, **Content**, **Engagement**, **Metrics** and **Configuration**. The sidebar is hidden below the `lg` breakpoint, and the mobile menu button has no handler.
+The sidebar (`AdminShell`) groups these pages under **Overview**, **Catalogue**, **Commerce**, **Content**, **Engagement**, **Metrics** and **Configuration**. Below the `lg` breakpoint the sidebar is hidden, and the header's menu button opens it as an overlay (`aria-expanded`/`aria-controls`; it closes on the backdrop, on Escape and on navigation).
 
 ## Admin route protection (`middleware.ts`)
 
-The edge middleware runs for `matcher: ["/admin/:path*"]`:
+The edge middleware runs for `matcher: ["/admin/:path*"]`. It doesn't trust the client-writable `flamora_role` cookie: it sends the `flamora_token` cookie to `GET /api/auth/me` (at `API_INTERNAL_URL`, default `http://127.0.0.1:8001`) as a Bearer token and acts on the answer:
 
 | Condition | Result |
 | --- | --- |
-| No `flamora_token` cookie and the path isn't `/admin/login` | Redirect to `/admin/login?from=<path>` |
-| `flamora_token` cookie present and the path is `/admin/login` | Redirect to `/admin/dashboard` |
-| Token present, `flamora_role` cookie isn't `admin`, and the path isn't the login page | Redirect to `/` |
-| Otherwise | Continue |
+| `/admin/login` with a token the API confirms as an admin | Redirect to `/admin/dashboard` |
+| `/admin/login` otherwise (no token, a stale one, or a customer) | Show the login page |
+| Any other `/admin/*` path, token missing, invalid or expired, **or the API unreachable** | Redirect to `/admin/login?from=<path>`, deleting both cookies (fails closed) |
+| Any other `/admin/*` path, valid token of a customer | Redirect to `/` |
+| Valid admin token | Continue |
 
-The middleware only checks that the cookies **exist** and what `flamora_role` says. It doesn't verify the JWT. Real authorization happens in the backend. `AdminShell` adds a client-side check: if the auth store has neither `user` nor `token`, it calls `router.replace("/admin/login")`.
+The backend still authorizes every admin API call on its own. `AdminShell` adds a client-side check: if the auth store has neither `user` nor `token`, it calls `router.replace("/admin/login")`.
 
 Storefront pages protect themselves on the client. `/checkout` redirects to `/auth/login?from=/checkout` when signed out, and `/account` redirects to `/auth/login`.
 
@@ -117,13 +117,11 @@ Storefront pages protect themselves on the client. `/checkout` redirects to `/au
 
 | Component(s) | Location | Used by |
 | --- | --- | --- |
-| `ProductCard` | `components/product/` | Shop, search, collections, wishlist, product page, `HOME/BestSellers`. Static product shape. Links to `/product/[slug]` and has a wishlist toggle. Adding to the bag happens on the product page. |
-| `ProductCard` (site) | `components/site/` | `app/(shop)/page.tsx` (API product shape) |
+| `ProductCard` | `components/product/` | Shop, search, collections, wishlist, product page, `HOME/BestSellers`. Storefront `Product` shape (mapped from the API by `lib/catalog.ts`). Links to `/product/[slug]` and has a wishlist toggle. Adding to the bag happens on the product page. |
 | `ShopPageClient`, `ShopFilters` | `components/shop/` | `/shop` |
 | `Hero`, `CategoryGrid`, `FeaturedCollection`, `BestSellers`, `BrandStory`, `CampaignBanner`, `Testimonials`, `Benefits`, `Newsletter` | `components/HOME/` | Imported by `app/page.tsx`, but their JSX there is commented out. `BrandStory` and `Benefits` render on `/about`. |
 | `LuxuryHeader`, `HeroSection`, `PhilosophySection`, `MakingSection`, `VideoSection`, `EditorialSection`, `LuxuryFooter`, `MenuOverlay`, `InquiryOverlay`, `ScrollProgress` | `components/` | `app/page.tsx` |
 | `Reveal` | `components/motion/` | A framer-motion fade or slide-in on scroll, used by the HOME sections |
 | `JewelScene` | `components/three/` | `/three`. A React Three Fiber scene that reacts to the cursor. |
-| `Hero` (site) | `components/site/` | `app/(shop)/page.tsx` |
 
 Unused components are listed in [Known issues: unused or unreachable code](known-issues.md#unused-or-unreachable-code).

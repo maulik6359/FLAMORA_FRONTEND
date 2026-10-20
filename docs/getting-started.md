@@ -56,8 +56,6 @@ npm start        # runs: next dev -H 0.0.0.0 -p 3000
 
 Open `http://localhost:3000`. Requests to `http://localhost:3000/api/*` are rewritten to `http://127.0.0.1:8001/api/*` (hard-coded in [`next.config.mjs`](../next.config.mjs)), so the API must listen on port **8001**.
 
-> **Heads-up:** `app/page.tsx` and `app/(shop)/page.tsx` both resolve to `/`. Next.js doesn't allow two pages at the same path, so expect an error on `/` until one of them is removed. See [Known issues](known-issues.md#1-two-pages-resolve-to-).
-
 ## 3. Sign in to the admin console
 
 1. Go to `http://localhost:3000/admin/login`.

@@ -24,7 +24,6 @@ Forms use **plain React**: controlled inputs with `useState`, or uncontrolled in
 | Reports range | `app/(admin)/admin/reports/page.tsx` | from, to dates | — | `GET /api/admin/reports/sales` |
 | Contact (storefront) | `app/(shop)/contact/page.tsx` | contact fields | Native | `POST /api/contact`. The success toast and reset happen only after the API stored the message; otherwise an error toast. |
 | Newsletter (home section) | `components/HOME/Newsletter.tsx` | email | Regex `^[^\s@]+@[^\s@]+\.[^\s@]{2,}$` | `POST /api/newsletter/subscribe` (`source: "homepage"`). Errors show under the field. |
-| Newsletter (API home) | `app/(shop)/page.tsx` | email | — | **No handler** (the page is shadowed and never served; see [Known issues 1](known-issues.md#1-two-pages-resolve-to-)) |
 | Inquiry overlay | `components/InquiryOverlay.tsx` | first and last name, email, country (required), phone, message | Native `required`, `type="email"` | `POST /api/contact` with subject `Private enquiry (<country>)`. Closes and confirms only on success. |
 
 The backend runs its own checks too. See [Backend validation rules](https://github.com/maulik6359/FLAMORA_BACK/blob/main/docs/error-handling.md#input-validation).
@@ -112,7 +111,6 @@ toast("Welcome to FLĀMORÁ", { description: "…" });
 | `lib/razorpay.ts` | `loadRazorpayScript()`, Razorpay option and response types | Injects `checkout.js` once and resolves `true` or `false` |
 | `hooks/use-hydrated.ts` | `useHydrated()` | `false` until the component mounts. Guards rendering of persisted state. |
 | `lib/store.ts` | `useAuth`, `useCart`, `useWishlist`, `useSearchStore` | See [State management](state-management.md) |
-| `lib/products.ts`, `lib/types.ts`, `lib/auth-utils.ts` | Types, mapping helpers and token helpers for the legacy Axios client | Effectively unused. `/orders` imports `formatPrice` from `lib/products.ts`. |
 
 ## Animation helpers
 

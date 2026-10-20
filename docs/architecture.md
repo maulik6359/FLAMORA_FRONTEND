@@ -13,7 +13,6 @@ frontend/
 │   ├── three/page.tsx            "/three" Three.js showcase (outside both route groups)
 │   ├── (shop)/                   Storefront route group: AnnouncementBar + Navbar + CartDrawer + Footer
 │   │   ├── layout.tsx
-│   │   ├── page.tsx              "/" API-driven home page (conflicts with app/page.tsx)
 │   │   ├── shop/ search/ product/[slug]/ collections/ collections/[slug]/
 │   │   ├── cart/ wishlist/ checkout/ checkout/success/
 │   │   ├── auth/login/ auth/register/ login/ (redirect) account/ orders/
@@ -28,29 +27,24 @@ frontend/
 │   ├── HOME/                     Home-page sections (Hero, CategoryGrid, BestSellers, …)
 │   ├── layout/                   AnnouncementBar, Navbar, Footer (storefront chrome)
 │   ├── motion/                   Reveal (framer-motion scroll reveal)
-│   ├── product/                  ProductCard (static-data card)
+│   ├── product/                  ProductCard
 │   ├── shop/                     ShopPageClient, ShopFilters
-│   ├── site/                     Earlier storefront shell (mostly unused; Hero and ProductCard still used)
 │   ├── three/                    JewelScene (React Three Fiber)
 │   └── *.tsx                     Landing-page sections (LuxuryHeader, HeroSection, VideoSection, …)
 ├── data/                         Static content: products.ts, images.ts, site.ts
 ├── hooks/                        use-hydrated.ts, use-catalog.ts
 ├── lib/
 │   ├── api.ts                    Main fetch-based API client + shared API types + formatPrice
-│   ├── api/                      Legacy Axios client for a different API (unused)
 │   ├── store.ts                  useAuth store; re-exports cart and wishlist; useSearchStore
 │   ├── razorpay.ts               Checkout script loader + Razorpay types
 │   ├── currency.ts               store currency (from /api/settings/public)
 │   ├── format.ts                 formatPrice (store currency)
 │   ├── catalog.ts                fetchCatalog() from /api/products, toStorefrontProduct(), getRelatedProducts()
 │   ├── filterProducts.ts         Client-side filtering and sorting of the loaded catalogue
-│   ├── products.ts, types.ts     Types and helpers for the legacy API client
-│   ├── auth-utils.ts             localStorage token helpers for the legacy client
 │   └── utils.ts                  cn() class-name helper
 ├── store/                        Zustand stores: cart.ts, wishlist.ts
-├── types/commerce.ts             Static-catalogue domain types
 ├── public/                       Images, logo, videos (assets/, images/, media/)
-├── middleware.ts                 Edge middleware protecting /admin/*
+├── middleware.ts                 Edge middleware: verifies the session with /api/auth/me for /admin/*
 ├── next.config.mjs               Rewrites /api → backend, image and build settings
 ├── tailwind.config.js            Brand colours, fonts, shadows (loaded with @config)
 ├── postcss.config.js             @tailwindcss/postcss + autoprefixer
@@ -76,14 +70,14 @@ Next.js route groups (folders in parentheses) share a layout without adding a UR
 2. **Root layout** reads the store currency, then renders fonts, global CSS and the toaster.
 3. **Group layout** renders the storefront chrome or `AdminShell`.
 4. **Page** renders. Almost every page is a **client component** (`"use client"`). The exceptions are:
-   - `app/(shop)/page.tsx`: an async server component with `dynamic = "force-dynamic"`. It fetches `http://127.0.0.1:8001/api/products?featured=true&limit=4` and `/api/categories` on the server.
+   - `app/(shop)/product/[slug]/page.tsx`: a server component (`force-dynamic`) that checks the slug with the API and calls `notFound()` for a real 404, then renders the client `ProductPageClient`.
    - `app/(shop)/shop/page.tsx`, `collections/page.tsx` and `collections/[slug]/page.tsx`: server components that export `metadata` and render client children.
    - `app/(admin)/admin/page.tsx`: a server-side `redirect("/admin/dashboard")`.
 5. **Client hydration.** Zustand `persist` stores rehydrate from `localStorage`. Components that read persisted data use `useHydrated()` to avoid hydration mismatches.
 6. **Data fetching** happens in `useEffect` through `lib/api.ts` or direct `fetch("/api/...")` calls. The browser sends these to the same origin, and `next.config.mjs` rewrites them to the backend.
 
 ```text
-Browser ──► /admin/* ? middleware.ts (cookie check) ──► layout chain ──► page (client)
+Browser ──► /admin/* ? middleware.ts (GET /api/auth/me) ──► layout chain ──► page (client)
                                                                          │
                                                   useEffect → fetch("/api/…") ──► Next rewrite ──► Express :8001
 ```
@@ -114,7 +108,7 @@ See [State management and data flow](state-management.md#product-catalogue).
   | `gold` | `#C9A961`, `soft`, `bright`, `muted` |
 
   There are also `shadow-gold`, `shadow-luxury`, and font families `display` and `sans`.
-- **Custom utilities.** `globals.css` defines these with Tailwind v4 `@utility` blocks: `eyebrow`, `logo-emerald`, `logo-ivory`, `logo-gold`, `logo-gold-gradient`, `logo-transition`, `rule-gold`, `glass-panel`, `glass-panel-dark`, `text-gold-gradient`, `text-emerald-gradient`, `link-underline` and `shimmer`. Some pages, mainly the API-driven home, account and admin pages, also use `gold-text`, `hairline`, `glass-card` and `gold-border`. **None of those four is defined** anywhere in the project's CSS or Tailwind config, so they have no effect.
+- **Custom utilities.** `globals.css` defines these with Tailwind v4 `@utility` blocks: `eyebrow`, `logo-emerald`, `logo-ivory`, `logo-gold`, `logo-gold-gradient`, `logo-transition`, `rule-gold`, `glass-panel`, `glass-panel-dark`, `text-gold-gradient`, `text-emerald-gradient`, `link-underline`, `shimmer`, and `gold-text`, `hairline` and `glass-card` (used by the account, checkout-success and admin pages; same looks as `text-gold-gradient`, `rule-gold` and `glass-panel`).
 - **Dark mode** is class-based (`darkMode: "class"`, `@custom-variant dark`). No theme toggle is wired up in the current app.
 - **Admin** uses a fixed dark palette (`bg-[#0a0a0a]`, `bg-noir`, neutral greys and gold accents).
 - `cn()` in `lib/utils.ts` combines `clsx` and `tailwind-merge`.
@@ -125,4 +119,4 @@ See [State management and data flow](state-management.md#product-catalogue).
 
 ## Build-time leniency
 
-`next.config.mjs` sets `eslint.ignoreDuringBuilds: true` and `typescript.ignoreBuildErrors: true`, and `tsconfig.json` has `strict: false`. Type errors won't fail a build. Run `npx tsc --noEmit` yourself if you want type feedback.
+`next build` checks types ("Checking validity of types"), so a type error fails the build. Lint is still skipped (`eslint.ignoreDuringBuilds: true`, since there's no ESLint config), and `tsconfig.json` has `strict: false`.

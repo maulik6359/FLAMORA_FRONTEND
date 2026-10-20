@@ -68,9 +68,9 @@ export default function AdminCategoriesPage() {
 
       {showForm && (
         <form onSubmit={onCreate} className="bg-[#111] border border-neutral-900 p-6 space-y-4" data-testid="category-form">
-          <input name="name" required placeholder="Name" className="w-full px-4 py-2.5 bg-neutral-950 border border-neutral-800 focus:border-gold outline-none text-sm text-neutral-100" data-testid="cat-name" />
-          <textarea name="description" rows={2} placeholder="Description" className="w-full px-4 py-2.5 bg-neutral-950 border border-neutral-800 focus:border-gold outline-none text-sm text-neutral-100" />
-          <input name="image" placeholder="Image URL" className="w-full px-4 py-2.5 bg-neutral-950 border border-neutral-800 focus:border-gold outline-none text-sm text-neutral-100" />
+          <input aria-label="Name" name="name" required placeholder="Name" className="w-full px-4 py-2.5 bg-neutral-950 border border-neutral-800 focus:border-gold outline-none text-sm text-neutral-100" data-testid="cat-name" />
+          <textarea aria-label="Description" name="description" rows={2} placeholder="Description" className="w-full px-4 py-2.5 bg-neutral-950 border border-neutral-800 focus:border-gold outline-none text-sm text-neutral-100" />
+          <input aria-label="Image URL" name="image" placeholder="Image URL" className="w-full px-4 py-2.5 bg-neutral-950 border border-neutral-800 focus:border-gold outline-none text-sm text-neutral-100" />
           <div className="flex gap-3">
             <button type="submit" className="px-6 py-2.5 bg-gold text-neutral-950 text-[11px] tracking-[0.35em] uppercase font-medium" data-testid="cat-submit">Save</button>
             <button type="button" onClick={() => setShowForm(false)} className="px-6 py-2.5 border border-neutral-800 text-neutral-400 text-[11px] tracking-[0.35em] uppercase">Cancel</button>

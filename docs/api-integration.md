@@ -8,7 +8,7 @@ The frontend talks to the Express backend described in the [API reference](https
 
 ```text
 Browser  fetch("/api/products")  ──►  Next.js :3000  ──rewrite──►  http://127.0.0.1:8001/api/products
-Server   fetch("http://127.0.0.1:8001/api/…")  (app/(shop)/page.tsx only, called directly)
+Server   fetch(`${API_INTERNAL_URL}/api/…`)  (root layout, collection and product pages, middleware; default http://127.0.0.1:8001)
 ```
 
 - The rewrite in `next.config.mjs` proxies `/api/:path*` to the backend, so browser calls are same-origin and don't need CORS.
@@ -43,12 +43,12 @@ async function request<T>(path: string, init: RequestInit = {}, token?: string):
 | `api.register(data)` | `POST /auth/register` | `/auth/register` |
 | `api.login(data)` | `POST /auth/login` | `/auth/login`, `/admin/login` |
 | `api.me(token)` | `GET /auth/me` | — (not called) |
-| `api.products(params)` | `GET /products?…` | unused `SearchInput` only |
+| `api.products(params)` | `GET /products?…` | — (the catalogue uses `fetchCatalog`) |
 | `api.product(slug)` | `GET /products/:slug` | — |
 | `fetchCatalog(params?)` in [`lib/catalog.ts`](../lib/catalog.ts) (not `api.*`) | `GET /products?limit=200&page=…` (every page) | Shop, search, product page, wishlist, best sellers (through `useCatalog()`), `/collections/[slug]` (server) |
 | `api.categories()` | `GET /categories` | `ProductForm` |
 | `api.paymentMethods()` | `GET /payment-methods` | `/checkout` |
-| `api.wishlist` / `addWishlist` / `removeWishlist` | `GET`/`POST`/`DELETE /wishlist[/:id]` | unused `ProductDetailClient` only |
+| `api.wishlist` / `addWishlist` / `removeWishlist` | `GET`/`POST`/`DELETE /wishlist[/:id]` | `lib/store.ts` (account wishlist sync for signed-in customers) |
 | `api.quoteOrder(data)` | `POST /orders/quote` | `/checkout` (totals before ordering) |
 | `api.createOrder(data, token)` | `POST /orders` | `/checkout` |
 | `api.myOrders(token)` | `GET /orders/mine` | `/account`, `/orders` |
@@ -76,16 +76,7 @@ The file also exports the TypeScript types `Product`, `Category`, `Order`, `Orde
 
 Most phase 2–4 admin pages (and `CrudAdmin`) call `fetch("/api/admin/…", { headers: { Authorization: \`Bearer ${token}\` } })` directly instead of going through `lib/api.ts`. The full mapping is in the [admin routes table](components-and-routing.md#admin-routes). These calls generally parse `res.json()` and either show `data.message` in a toast or ignore errors.
 
-### 3. `lib/api/*.ts` (a legacy Axios client, not used)
-
-An Axios instance (`lib/api/axios.ts`) that:
-
-- uses `baseURL` = `NEXT_PUBLIC_API_URL` or `http://localhost:5000/api/v1`,
-- sets a 15 s timeout,
-- adds a Bearer token from `localStorage["aurelia-token"]` to each request,
-- clears auth on a 401 and turns errors into `Error(message)`.
-
-Its modules target endpoints **this backend doesn't have**: `/auth/logout`, `/users/me`, `/users/updateMe`, `/cart/*`, `/products/slug/:slug`, `/products/:id/reviews`, `/reviews/:id`, `/orders/my-orders`, and a `POST /wishlist` with a body. Responses are expected in a `{ status, data: {...} }` envelope. Only `lib/api/orders.ts` is imported, by `/orders`, and its call is commented out. Treat this client as dead code.
+The legacy Axios client that used to live in `lib/api/*.ts` (for a different API shape) was removed in the QA-audit fixes, as nothing imported it.
 
 ## Authentication flow
 
@@ -107,7 +98,7 @@ Authorization rules:
 
 | Layer | Check |
 | --- | --- |
-| `middleware.ts` (edge) | Checks that the `flamora_token` cookie exists and that `flamora_role === "admin"` for `/admin/*` |
+| `middleware.ts` (edge) | For `/admin/*`, verifies the `flamora_token` cookie with `GET /api/auth/me` and requires `role === "admin"` (see [Admin route protection](components-and-routing.md#admin-route-protection-middlewarets)) |
 | `AdminShell` (client) | Redirects to `/admin/login` if the store has no `user` and no `token` |
 | `/checkout`, `/account` (client) | Redirect to `/auth/login` when there's no user |
 | Backend (authoritative) | `requireAuth` / `requireAdmin` on every protected endpoint |
@@ -149,15 +140,17 @@ Implemented in `app/(shop)/checkout/page.tsx`:
 
 ## Server-side fetch
 
-`app/(shop)/page.tsx` fetches on the server, with no auth:
+These run on the Next.js server and call the backend directly at `API_INTERNAL_URL` (default `http://127.0.0.1:8001`), with no auth unless stated:
 
-| Call | Fallback |
-| --- | --- |
-| `GET http://127.0.0.1:8001/api/products?featured=true&limit=4` | `[]` on error or a non-OK response |
-| `GET http://127.0.0.1:8001/api/categories` | `[]` on error or a non-OK response |
+| Caller | Call | On failure |
+| --- | --- | --- |
+| `app/layout.tsx` (`fetchStoreCurrency()`) | `GET /api/settings/public`, cached for 60 seconds | Keeps the default currency (AUD) |
+| `app/(shop)/collections/[slug]/page.tsx` | `fetchCatalog({ collection })` | Shows a "couldn't load" message |
+| `app/(shop)/product/[slug]/page.tsx` | `GET /api/products/:slug` | A 404 becomes `notFound()`; an unreachable API renders the client page, which shows its own error |
+| `middleware.ts` | `GET /api/auth/me` with the `flamora_token` cookie as Bearer token | Redirects to `/admin/login` (fails closed) |
 
 ## Backend endpoints not used by the frontend
 
-`/api/auth/me`, `/api/auth/change-password`, `/api/products` (except on the server-rendered home page), `/api/products/:slug`, `/api/wishlist/*`, `/api/payments/order/:id`, `/api/payments/checkout/status/:id`, `/api/coupons/validate`, `/api/contact`, `/api/newsletter/subscribe`, `/api/faqs`, `/api/blogs*`, `/api/cms/:slug`, `/api/banners`, `/api/reviews*`, `/api/settings/public`, `/api/shipping-methods`, `/api/brands|collections|materials|gemstones` (public), `/api/admin/orders/:id`, the `/api/admin/reviews/:id/reply` endpoint, `/api/admin/contact-messages/:id/mark-read`, `/api/admin/newsletter/subscribers/:id` (DELETE), `/api/admin/notifications/:id/read` and `/api/admin/products/:productId/variants/:variantId` (PATCH).
+`/api/auth/change-password`, `/api/payments/order/:id`, `/api/payments/checkout/status/:id`, `/api/coupons/validate`, `/api/contact`, `/api/newsletter/subscribe`, `/api/faqs`, `/api/blogs*`, `/api/cms/:slug`, `/api/banners`, `/api/reviews*`, `/api/settings/public`, `/api/shipping-methods`, `/api/brands|collections|materials|gemstones` (public), `/api/admin/orders/:id`, the `/api/admin/reviews/:id/reply` endpoint, `/api/admin/contact-messages/:id/mark-read`, `/api/admin/newsletter/subscribers/:id` (DELETE), `/api/admin/notifications/:id/read` and `/api/admin/products/:productId/variants/:variantId` (PATCH).
 
 They're available for future storefront work.

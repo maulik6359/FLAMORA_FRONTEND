@@ -133,11 +133,12 @@ export default function ProductVariantsPage() {
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div>
-      <label className="eyebrow block mb-2 text-neutral-400">{label}</label>
-      <div className="[&_input]:w-full [&_input]:px-3 [&_input]:py-2 [&_input]:bg-neutral-950 [&_input]:border [&_input]:border-neutral-800 [&_input]:focus:border-gold [&_input]:outline-none [&_input]:text-sm [&_input]:text-neutral-100">
+    // Wrapping the control in its <label> gives it an accessible name.
+    <label className="block">
+      <span className="eyebrow block mb-2 text-neutral-400">{label}</span>
+      <span className="block [&_input]:w-full [&_input]:px-3 [&_input]:py-2 [&_input]:bg-neutral-950 [&_input]:border [&_input]:border-neutral-800 [&_input]:focus:border-gold [&_input]:outline-none [&_input]:text-sm [&_input]:text-neutral-100">
         {children}
-      </div>
-    </div>
+      </span>
+    </label>
   );
 }

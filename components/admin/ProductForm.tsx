@@ -29,7 +29,6 @@ export function ProductForm({ initial, onSuccess }: ProductFormProps) {
       description: fd.get("description"),
       price: Number(fd.get("price")),
       discountPrice: fd.get("discountPrice") ? Number(fd.get("discountPrice")) : undefined,
-      currency: fd.get("currency") || "EUR",
       category: fd.get("category"),
       material: fd.get("material") || undefined,
       gemstone: fd.get("gemstone") || undefined,
@@ -72,10 +71,9 @@ export function ProductForm({ initial, onSuccess }: ProductFormProps) {
       <Field label="Description" required>
         <textarea name="description" required rows={4} defaultValue={initial?.description} className={inputCls} data-testid="pf-description" />
       </Field>
-      <div className="grid md:grid-cols-4 gap-4">
+      <div className="grid md:grid-cols-3 gap-4">
         <Field label="Price *"><input name="price" type="number" step="0.01" required defaultValue={initial?.price} className={inputCls} data-testid="pf-price" /></Field>
         <Field label="Discount Price"><input name="discountPrice" type="number" step="0.01" defaultValue={initial?.discountPrice || ""} className={inputCls} /></Field>
-        <Field label="Currency"><input name="currency" defaultValue={initial?.currency || "EUR"} className={inputCls} /></Field>
         <Field label="Stock *"><input name="stockQuantity" type="number" required defaultValue={initial?.stockQuantity ?? 0} className={inputCls} data-testid="pf-stock" /></Field>
       </div>
       <div className="grid md:grid-cols-3 gap-4">
@@ -127,9 +125,10 @@ const inputCls = "w-full px-4 py-2.5 bg-neutral-950 border border-neutral-800 fo
 
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
-    <div>
-      <label className="eyebrow block mb-2 text-neutral-400">{label}{required && " *"}</label>
+    // Wrapping the control in its <label> gives it an accessible name.
+    <label className="block">
+      <span className="eyebrow block mb-2 text-neutral-400">{label}{required && " *"}</span>
       {children}
-    </div>
+    </label>
   );
 }

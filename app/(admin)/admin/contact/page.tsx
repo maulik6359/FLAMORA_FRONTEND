@@ -28,7 +28,7 @@ export default function ContactPage() {
       body: JSON.stringify({ message: reply }),
     });
     if (!res.ok) return toast.error("Failed to send reply");
-    toast.success("Reply sent (mocked delivery)");
+    toast.success("Reply saved. It wasn't emailed: no mail service is configured.");
     setSelected(null);
     setReply("");
     load();
@@ -88,7 +88,7 @@ export default function ContactPage() {
               <h2 className="mt-1 font-display text-2xl text-neutral-100">{selected.subject || "Message"}</h2>
             </div>
             <div className="bg-neutral-950 p-4 border border-neutral-800 text-sm text-neutral-400 max-h-40 overflow-y-auto">{selected.message}</div>
-            <textarea value={reply} onChange={(e) => setReply(e.target.value)} rows={5} placeholder="Your response…" className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 focus:border-gold outline-none text-sm text-neutral-100" data-testid="reply-textarea" />
+            <textarea aria-label="Reply" value={reply} onChange={(e) => setReply(e.target.value)} rows={5} placeholder="Your response…" className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 focus:border-gold outline-none text-sm text-neutral-100" data-testid="reply-textarea" />
             <div className="flex gap-3">
               <button onClick={sendReply} className="px-6 py-2.5 bg-gold text-neutral-950 text-[11px] tracking-[0.35em] uppercase font-medium" data-testid="reply-send">Send Reply</button>
               <button onClick={() => setSelected(null)} className="px-6 py-2.5 border border-neutral-800 text-neutral-400 text-[11px] tracking-[0.35em] uppercase">Cancel</button>

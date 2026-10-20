@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { LayoutDashboard, Package, Layers, ShoppingBag, Users, LogOut, Menu, Building2, Sparkles, Gem, Boxes, Ticket, Warehouse, Star, HelpCircle, MessageSquare, Mail, Bell, Image, LayoutTemplate, Percent, FileText, BookOpen, BarChart3, LineChart, CreditCard, Truck, Receipt, PackageCheck, Settings as SettingsIcon, ScrollText } from "lucide-react";
 import { useAuth } from "@/lib/store";
 
@@ -75,6 +75,15 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { user, token, logout } = useAuth();
   const isLoginPage = pathname === "/admin/login" || pathname === "/admin";
+  // Below the lg breakpoint the sidebar is an overlay opened from the header button.
+  const [menuOpen, setMenuOpen] = useState(false);
+  useEffect(() => setMenuOpen(false), [pathname]);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMenuOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [menuOpen]);
 
   useEffect(() => {
     // Hydrate — if middleware allowed us through, Zustand may not yet be rehydrated on the client.
@@ -88,7 +97,13 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen bg-[#0a0a0a] text-neutral-100 overflow-hidden" data-testid="admin-shell">
-      <aside className="w-64 bg-noir border-r border-neutral-900 flex-shrink-0 hidden lg:flex flex-col">
+      {menuOpen && (
+        <button type="button" aria-label="Close menu" onClick={() => setMenuOpen(false)} className="fixed inset-0 z-40 bg-black/60 lg:hidden" />
+      )}
+      <aside
+        id="admin-sidebar"
+        className={`w-64 bg-noir border-r border-neutral-900 flex-shrink-0 flex-col ${menuOpen ? "fixed inset-y-0 left-0 z-50 flex" : "hidden"} lg:static lg:flex`}
+      >
         <div className="p-6 border-b border-neutral-900">
           <Link href="/admin/dashboard" className="block">
             <span className="font-display text-2xl tracking-[0.3em] gold-text">FLAMORA</span>
@@ -139,7 +154,16 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="h-16 border-b border-neutral-900 bg-noir/80 backdrop-blur flex items-center justify-between px-6">
           <div className="flex items-center gap-3">
-            <button className="lg:hidden text-neutral-400" aria-label="Menu"><Menu size={18} /></button>
+            <button
+              type="button"
+              className="lg:hidden text-neutral-400"
+              aria-label={menuOpen ? "Close menu" : "Open menu"}
+              aria-expanded={menuOpen}
+              aria-controls="admin-sidebar"
+              onClick={() => setMenuOpen((open) => !open)}
+            >
+              <Menu size={18} />
+            </button>
             <p className="eyebrow text-neutral-500">Console</p>
           </div>
           <Link href="/" className="text-[10px] tracking-[0.3em] uppercase text-neutral-500 hover:text-gold">

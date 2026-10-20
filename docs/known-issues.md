@@ -1,6 +1,6 @@
 # Known Issues and Discrepancies (Frontend)
 
-While writing these docs, every claim was checked against the source. This page lists frontend problems and the places where the frontend and the backend API don't agree. It's a record of how things stand today. Issues fixed in the QA-audit fixes (2, 3, 4, 5, 6, 7, 12, 13 and S9; S5 partly) are marked **Resolved** and keep their numbers (see the root `qa/QA_AUDIT_REPORT.md`).
+While writing these docs, every claim was checked against the source. This page lists frontend problems and the places where the frontend and the backend API don't agree. It's a record of how things stand today. Issues fixed in the QA-audit fixes (1, 2, 3, 4, 5, 6, 7, 12, 13, 16, S9 and the unused-code list; S5 and S8 partly) are marked **Resolved** and keep their numbers (see the root `qa/QA_AUDIT_REPORT.md`).
 
 ← Back to the [frontend documentation index](README.md)
 
@@ -18,7 +18,9 @@ Severity labels:
 
 ### 1. Two pages resolve to `/`
 
-**Severity: High.** Both [`app/page.tsx`](../app/page.tsx) (the client-side "cinematic" landing page) and [`app/(shop)/page.tsx`](../app/%28shop%29/page.tsx) (a server component that fetches featured products and categories from the API) map to the URL `/`. Route groups like `(shop)` don't add a URL segment, so Next.js reports a conflict for this path. Remove or move one of the two pages to fix it. The code doesn't say which one is meant to win.
+**Status: Resolved** in the QA-audit fixes. `app/(shop)/page.tsx`, which the build silently shadowed and which was never served, was deleted. `/` is `app/page.tsx` only.
+
+**Severity (when open): High.** Both [`app/page.tsx`](../app/page.tsx) (the client-side "cinematic" landing page) and [`app/(shop)/page.tsx`](../app/%28shop%29/page.tsx) (a server component that fetches featured products and categories from the API) map to the URL `/`. Route groups like `(shop)` don't add a URL segment, so Next.js reports a conflict for this path. Remove or move one of the two pages to fix it. The code doesn't say which one is meant to win.
 
 ### 2. Storefront catalogue IDs can't be ordered through the API
 
@@ -46,7 +48,7 @@ Severity labels:
 
 ### 6. Contact, newsletter and inquiry forms aren't connected to the API
 
-**Status: Resolved** in the QA-audit fixes. `/contact`, `components/HOME/Newsletter.tsx` and `components/InquiryOverlay.tsx` call the API and confirm only on success, and the register page subscribes when the newsletter box is ticked. The newsletter form in the shadowed `app/(shop)/page.tsx` still has no handler, but that page is never served ([issue 1](#1-two-pages-resolve-to-)).
+**Status: Resolved** in the QA-audit fixes. `/contact`, `components/HOME/Newsletter.tsx` and `components/InquiryOverlay.tsx` call the API and confirm only on success, and the register page subscribes when the newsletter box is ticked. (The shadowed `app/(shop)/page.tsx`, whose newsletter form had no handler, was deleted; see [issue 1](#1-two-pages-resolve-to-).)
 
 **Severity (when open): Medium.** The backend has `POST /api/contact` and `POST /api/newsletter/subscribe`, but none of the storefront forms called them:
 
@@ -75,7 +77,9 @@ Severity labels:
 
 ### 16. Some CSS utility classes are used but never defined
 
-**Severity: Low.** `gold-text`, `hairline`, `glass-card` and `gold-border` appear in markup in `app/(shop)/page.tsx`, `/account`, `/checkout/success`, `/admin/login`, `AdminShell` and several unused `components/site/*` files. They aren't defined in `app/globals.css` or `tailwind.config.js`, so they have no effect.
+**Status: Resolved** in the QA-audit fixes. `app/globals.css` now defines `gold-text`, `hairline` and `glass-card`. `gold-border` was only used by files that were deleted.
+
+**Severity (when open): Low.** `gold-text`, `hairline`, `glass-card` and `gold-border` appear in markup in `app/(shop)/page.tsx`, `/account`, `/checkout/success`, `/admin/login`, `AdminShell` and several unused `components/site/*` files. They aren't defined in `app/globals.css` or `tailwind.config.js`, so they have no effect.
 
 ### 17. The admin review form can't create reviews
 
@@ -87,19 +91,20 @@ Severity labels:
 
 | # | Observation | Location |
 | --- | --- | --- |
-| S5 | **The token is readable by JavaScript.** (Partly mitigated: sign-out now calls `POST /api/auth/logout`, which revokes the token on the server, and a password change revokes older tokens.) The JWT is stored in `localStorage` (Zustand `persist`) and in a non-`HttpOnly` cookie `flamora_token`. The admin middleware trusts the client-written `flamora_role` cookie for routing. The backend still enforces the admin role on every admin API call. | `lib/store.ts`, `middleware.ts` |
-| S8 | **The build ignores type and lint errors.** `next.config.mjs` sets `typescript.ignoreBuildErrors` and `eslint.ignoreDuringBuilds`, and `tsconfig.json` has `"strict": false`. | `next.config.mjs`, `tsconfig.json` |
+| S5 | **Partly resolved: the token is readable by JavaScript.** Sign-out calls `POST /api/auth/logout` (server-side revocation), a password change revokes older tokens, and `middleware.ts` now verifies the session with `GET /api/auth/me` instead of trusting the `flamora_role` cookie. Still open: the JWT is stored in `localStorage` (Zustand `persist`) and in a non-`HttpOnly` cookie `flamora_token`. The backend enforces the admin role on every admin API call. | `lib/store.ts`, `middleware.ts` |
+| S8 | **Partly resolved: the build ignored type and lint errors.** `next build` now type-checks (`typescript.ignoreBuildErrors` was removed; `tsc` is clean). Still open: lint is skipped (`eslint.ignoreDuringBuilds`, no ESLint config), `tsconfig.json` has `"strict": false`, and there's no CI. | `next.config.mjs`, `tsconfig.json` |
 | S9 | **Resolved: the admin login form pre-filled credentials.** The email and password inputs on `/admin/login` used to have hard-coded `defaultValue`s, so a login pair shipped in the client JavaScript bundle. The defaults were removed in the QA-audit fixes. The pair is still in Git history and in any bundle built before the fix, so **rotate that password** wherever it's in use. | `app/(admin)/admin/login/page.tsx` |
 
 ---
 
 ## Unused or unreachable code
 
-These modules aren't imported, directly or indirectly, by any `page.tsx` or `layout.tsx`. This was worked out from a static import graph.
+**Resolved** in the QA-audit fixes. A static import graph from every page, layout and the middleware found these modules unreachable, and they were deleted:
 
-| Module | Notes |
-| --- | --- |
-| `app/(shop)/product/[slug]/ProductDetailClient.tsx` | An older API-backed product detail component. The live product page is `page.tsx`, which now also reads the API. |
-| `components/site/Navbar.tsx`, `Footer.tsx`, `ScrollExperience.tsx`, `SearchInput.tsx`, `ShopClient.tsx`, `SmoothScrollProvider.tsx` | An earlier storefront shell. `components/site/Hero.tsx` and `components/site/ProductCard.tsx` are still used by `app/(shop)/page.tsx`. |
-| `lib/api/auth.ts`, `lib/api/cart.ts`, `lib/api/products.ts`, `lib/api/wishlist.ts` | An Axios client for a **different** API shape (`/api/v1`, `/cart`, `/users/me`, `/products/slug/:slug`, `{ status, data }` envelopes) that the FLAMORA backend doesn't implement. |
-| `lib/api/orders.ts`, `lib/api/axios.ts`, `lib/auth-utils.ts` | No longer imported anywhere (the `/orders` page now uses `lib/api.ts`). |
+- `app/(shop)/page.tsx` (the shadowed home page)
+- `app/(shop)/product/[slug]/ProductDetailClient.tsx`
+- `components/site/*` (`Footer`, `Hero`, `Navbar`, `ProductCard`, `ScrollExperience`, `SearchInput`, `ShopClient`, `SmoothScrollProvider`)
+- `lib/api/*` (the Axios client for a different API shape: `auth`, `axios`, `cart`, `orders`, `products`, `wishlist`)
+- `lib/auth-utils.ts`, `lib/products.ts`, `lib/types.ts`, `types/commerce.ts`
+
+The `axios` and `lenis` packages are still listed in `package.json` but no longer imported.

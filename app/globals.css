@@ -367,6 +367,26 @@
   -webkit-background-clip: text;
 }
 
+/* Used by the account, checkout-success and admin pages; they were referenced but never
+   defined. Same looks as text-gold-gradient, rule-gold and glass-panel. */
+@utility gold-text {
+  color: transparent;
+  background: var(--gradient-gold);
+  background-clip: text;
+  -webkit-background-clip: text;
+}
+
+@utility hairline {
+  height: 1px;
+  background: var(--gradient-gold);
+}
+
+@utility glass-card {
+  background: oklch(1 0 0 / 0.72);
+  border: 1px solid oklch(0.9 0.02 84 / 0.7);
+  backdrop-filter: blur(18px) saturate(1.2);
+}
+
 @utility text-emerald-gradient {
   color: transparent;
   background: var(--gradient-emerald);
