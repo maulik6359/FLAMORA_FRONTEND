@@ -2,6 +2,9 @@ import { Jost, Playfair_Display } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { Toaster } from "sonner";
 
+import { StoreCurrency } from "@/components/StoreCurrency";
+import { fetchStoreCurrency } from "@/lib/currency";
+
 import "./globals.css";
 
 const playfair = Playfair_Display({
@@ -28,9 +31,11 @@ export const metadata = {
     "FLĀMORÁ creates timeless fine jewellery using ethically sourced diamonds, precious stones and recycled gold.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }) {
+  const currency = await fetchStoreCurrency();
+
   return (
     <html
       lang="en"
@@ -42,6 +47,7 @@ export default function RootLayout({
         className="min-h-screen bg-background font-sans text-foreground antialiased"
         suppressHydrationWarning
       >
+        <StoreCurrency currency={currency} />
         {children}
 
         <Toaster

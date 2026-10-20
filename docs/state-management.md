@@ -72,7 +72,7 @@ Products come from **the API** only (MongoDB through `GET /api/products`). The s
 | [`hooks/use-catalog.ts`](../hooks/use-catalog.ts) | `useCatalog()` for client components: one shared request per page, refreshed after 60 seconds, with `loading` and `error` states |
 | `lib/filterProducts.ts` | Filters and sorts the loaded list for `/shop` and `/search` |
 
-`data/products.ts` keeps the storefront `Product` type, `collections` (collection descriptions and images), `testimonials`, `ALL_METALS`, `ALL_GEMSTONES`, `CATEGORIES`, `getCollectionBySlug` and `formatPrice`. Prices are still formatted as AUD while the API's currency is EUR ([Known issues 13](known-issues.md#13-prices-use-mixed-currencies)). `data/site.ts` holds the landing-page copy (`philosophySteps`, `makingSteps`, `menuItems`), and `data/images.ts` maps image keys to paths.
+`data/products.ts` keeps the storefront `Product` type, `collections` (collection descriptions and images), `testimonials`, `ALL_METALS`, `ALL_GEMSTONES`, `CATEGORIES`, `getCollectionBySlug` and `formatPrice`. Prices are formatted in the store currency (`lib/currency.ts`), the same one the backend charges in. Each product also carries `rating` and `reviewCount` (approved reviews), which the product page shows, or "No reviews yet". `data/site.ts` holds the landing-page copy (`philosophySteps`, `makingSteps`, `menuItems`), and `data/images.ts` maps image keys to paths.
 
 ## Data flow diagrams
 
@@ -100,7 +100,8 @@ product/[slug] page ── useCatalog(), find by slug ── addItem({id: <Objec
 ### Checkout
 
 ```text
-useCartStore.items ──► POST /api/orders { items: [{productId: item.id, quantity}] , shippingAddress }
+useCartStore.items ──► POST /api/orders/quote (totals, on every change)
+                   ──► POST /api/orders { items, paymentMethod, couponCode, shippingMethodId, shippingAddress }
                    ──► POST /api/payments/create-order ──► Razorpay modal ──► POST /api/payments/verify
                    ──► clearCart() and an inline confirmation
 ```

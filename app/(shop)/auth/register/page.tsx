@@ -55,6 +55,8 @@ function RegisterForm() {
       setBusy(true);
       const result = await api.register({ name, email, password: form.password });
       setAuth(result.user, result.token);
+      // The account is created either way; a failed newsletter sign-up isn't worth blocking it.
+      if (form.newsletter) api.subscribeNewsletter({ email, name, source: "register" }).catch(() => {});
       toast.success(result.user.role === "admin" ? "Admin registered" : isCheckout ? "Account created! Redirecting to checkout…" : "Account created successfully");
       router.push(result.user.role === "admin" ? "/admin/dashboard" : redirectTo);
     } catch (error: any) {
@@ -195,4 +197,4 @@ function Field({
       />
     </div>
   );
-}
+}

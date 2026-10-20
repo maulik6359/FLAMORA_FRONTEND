@@ -112,8 +112,8 @@ export default function InventoryPage() {
                 <td className="py-3 text-neutral-400">{p.category?.name ?? "—"}</td>
                 <td className="py-3 text-right"><span className={p.stockQuantity <= p.lowStockThreshold ? "text-amber-400" : "text-neutral-100"}>{p.stockQuantity}</span></td>
                 <td className="py-3 text-right text-neutral-500">{p.lowStockThreshold}</td>
-                <td className="py-3 text-right text-gold">{formatPrice(p.price, p.currency)}</td>
-                <td className="py-3 text-right text-neutral-100">{formatPrice(p.price * p.stockQuantity, p.currency)}</td>
+                <td className="py-3 text-right text-gold">{formatPrice(p.price)}</td>
+                <td className="py-3 text-right text-neutral-100">{formatPrice(p.price * p.stockQuantity)}</td>
                 <td className="py-3 pr-4 text-right">
                   <div className="inline-flex gap-2">
                     <button onClick={() => setAdjust(p)} className="p-2 text-neutral-400 hover:text-gold" title="Adjust" data-testid={`adjust-${p._id}`}>

@@ -11,9 +11,9 @@ Forms use **plain React**: controlled inputs with `useState`, or uncontrolled in
 | Form | File | Inputs | Client-side validation | Submits to |
 | --- | --- | --- | --- | --- |
 | Sign in | `app/(shop)/auth/login/page.tsx` | email, password | Trimmed email and password must be present (toast "Please enter your email and password.") | `POST /api/auth/login` |
-| Register | `app/(shop)/auth/register/page.tsx` | name, email, password, confirm, newsletter, terms | Required fields present. Password ≥ 6 characters. Password and confirmation match. Terms accepted. | `POST /api/auth/register` (the newsletter choice isn't sent) |
+| Register | `app/(shop)/auth/register/page.tsx` | name, email, password, confirm, newsletter, terms | Required fields present. Password ≥ 6 characters. Password and confirmation match. Terms accepted. | `POST /api/auth/register`, then `POST /api/newsletter/subscribe` when the newsletter box is ticked (a failure there doesn't block the account) |
 | Admin sign in | `app/(admin)/admin/login/page.tsx` | email, password (uncontrolled) | Role must be `admin` after the response | `POST /api/auth/login` |
-| Checkout | `app/(shop)/checkout/page.tsx` | email, name, address, city, postcode (all `required`), phone, payment method | Native `required`. Bag not empty, method selected, token present. | `POST /api/orders`, payments |
+| Checkout | `app/(shop)/checkout/page.tsx` | email, name, address, city, postcode (all `required`), phone, coupon, shipping method, payment method | Native `required`. Bag not empty, method selected, token present. | `POST /api/orders/quote`, `POST /api/orders`, payments |
 | Product | `components/admin/ProductForm.tsx` | See [components](components-and-routing.md#admin-building-blocks) | Native `required` on name, category, description, price and stock | `POST`/`PATCH /api/admin/products` |
 | Generic CRUD | `components/admin/CrudAdmin.tsx` | Built from the `fields` config | Native `required` per field | `POST`/`PATCH /api/admin/<resource>` |
 | Inventory adjust | `app/(admin)/admin/inventory/page.tsx` | type (select), quantity, reason | Native `required` on type and quantity. Quantity `min={0}`. | `PATCH /api/admin/inventory/:id/adjust` |
@@ -22,10 +22,10 @@ Forms use **plain React**: controlled inputs with `useState`, or uncontrolled in
 | Newsletter campaign | `app/(admin)/admin/newsletter/page.tsx` | subject, HTML content, segment | Server-side checks | `POST /api/admin/newsletter/campaign` |
 | Contact reply | `app/(admin)/admin/contact/page.tsx` | message | — | `POST /api/admin/contact-messages/:id/reply` |
 | Reports range | `app/(admin)/admin/reports/page.tsx` | from, to dates | — | `GET /api/admin/reports/sales` |
-| Contact (storefront) | `app/(shop)/contact/page.tsx` | contact fields | Native | **Nothing is sent.** It shows a toast and resets. |
-| Newsletter (home section) | `components/HOME/Newsletter.tsx` | email | Regex `^[^\s@]+@[^\s@]+\.[^\s@]{2,}$` | **Nothing is sent.** It shows a toast. |
-| Newsletter (API home) | `app/(shop)/page.tsx` | email | — | **No handler** |
-| Inquiry overlay | `components/InquiryOverlay.tsx` | name, email, phone, country, message | — | **No handler** |
+| Contact (storefront) | `app/(shop)/contact/page.tsx` | contact fields | Native | `POST /api/contact`. The success toast and reset happen only after the API stored the message; otherwise an error toast. |
+| Newsletter (home section) | `components/HOME/Newsletter.tsx` | email | Regex `^[^\s@]+@[^\s@]+\.[^\s@]{2,}$` | `POST /api/newsletter/subscribe` (`source: "homepage"`). Errors show under the field. |
+| Newsletter (API home) | `app/(shop)/page.tsx` | email | — | **No handler** (the page is shadowed and never served; see [Known issues 1](known-issues.md#1-two-pages-resolve-to-)) |
+| Inquiry overlay | `components/InquiryOverlay.tsx` | first and last name, email, country (required), phone, message | Native `required`, `type="email"` | `POST /api/contact` with subject `Private enquiry (<country>)`. Closes and confirms only on success. |
 
 The backend runs its own checks too. See [Backend validation rules](https://github.com/maulik6359/FLAMORA_BACK/blob/main/docs/error-handling.md#input-validation).
 
@@ -81,7 +81,7 @@ This form has no `product` field, but `Review.product` is required. Creating a r
 | --- | --- |
 | `lib/api.ts` `request()` | Throws `Error(json.message \|\| "HTTP <status>")` on a non-2xx response |
 | Pages | Wrap calls in `try/catch` and show `toast.error(err.message)`. Some ignore errors, for example `/account` uses `.catch(() => {})`. |
-| `CrudAdmin` | Shows `toast.error(data.message \|\| "Failed")` on save or delete errors. Errors while loading the list aren't caught: they propagate out of `load()`, the `finally` clears the busy flag, and the table stays empty. |
+| `CrudAdmin` | Shows `toast.error(data.message \|\| "Failed")` on save or delete errors, and an error toast when the list can't be loaded. |
 | Checkout | Each step has its own message, for example "Could not initialize Razorpay payment…" or "Failed to load Razorpay SDK…". If a payment fails or is cancelled, the backend is told through `/payments/failure`. |
 | Global | No `error.tsx`, `global-error.tsx` or React error boundary exists. Uncaught render errors show the Next.js default error page. |
 
@@ -102,8 +102,9 @@ toast("Welcome to FLĀMORÁ", { description: "…" });
 | Module | Exports | Notes |
 | --- | --- | --- |
 | `lib/utils.ts` | `cn(...classes)` | `twMerge(clsx(...))` |
-| `lib/format.ts` | `formatPrice(value)` | Always **AUD**, `en-AU`, no decimals. Used by storefront pages, the cart, the drawer and filters. |
-| `lib/api.ts` | `formatPrice(amount, currency = "EUR")` | `en-US` with the given currency, no decimals. Falls back to `"<CUR> <amount>"`. Used by `/account`. |
+| `lib/format.ts` | `formatPrice(value, currency = getStoreCurrency())` | The **store currency** (`lib/currency.ts`), `en-AU`. Cents are shown only when the amount has them. Falls back to `"<CUR> <amount>"`. Used by storefront pages, the cart, the drawer, filters and the admin product and inventory pages. |
+| `lib/currency.ts` | `getStoreCurrency()`, `setStoreCurrency(code)`, `fetchStoreCurrency()` | The shop's single currency: the admin `store_currency` setting, read from `GET /api/settings/public` by the root layout (cached for 60 seconds), `AUD` until it says otherwise. `components/StoreCurrency.tsx` applies it before the page renders. |
+| `lib/api.ts` | `formatPrice(amount, currency?)` | Delegates to `lib/format.ts`; pass a currency to format an amount in it (orders use their own `currency`). Used by `/account`. |
 | `data/products.ts` | `formatPrice(…)`, `getCollectionBySlug(…)` | Collection and price helpers (no product data) |
 | `lib/catalog.ts` | `fetchCatalog(params?)`, `toStorefrontProduct(apiProduct)`, `getRelatedProducts(list, product)`, `isProductId(id)` | Loads every active product from `/api/products`, page by page, and maps it to the storefront `Product` type |
 | `hooks/use-catalog.ts` | `useCatalog()` → `{ products, loading, error }` | One shared catalogue request per page, refreshed after 60 seconds |

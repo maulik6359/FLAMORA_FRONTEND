@@ -22,7 +22,7 @@ const GROUPS: GroupDef[] = [
       { name: "store_email", label: "Contact email", type: "email", placeholder: "concierge@flamora.com" },
       { name: "store_phone", label: "Phone", placeholder: "+91…" },
       { name: "store_address", label: "Address", type: "textarea", span: 2 },
-      { name: "store_currency", label: "Default currency", placeholder: "EUR" },
+      { name: "store_currency", label: "Store currency (ISO code; display and charging)", placeholder: "AUD" },
     ],
   },
   {

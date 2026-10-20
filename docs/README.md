@@ -75,6 +75,6 @@ The backend must be running on `127.0.0.1:8001` for API calls to work. See [Gett
 | Shop, search, product detail, collections, wishlist | API `/api/products` (through `lib/catalog.ts`) | Client-side filtering and sorting of the loaded catalogue |
 | Cart, wishlist | Zustand stores persisted to `localStorage` | Wishlist isn't synced with the API wishlist |
 | Auth (login, register) | API `/api/auth/*` | JWT stored in Zustand and mirrored into cookies |
-| Checkout | API `/api/orders`, `/api/payments/*`, `/api/payment-methods` | Razorpay modal or Cash on Delivery |
+| Checkout | API `/api/orders/quote`, `/api/orders`, `/api/payments/*`, `/api/payment-methods` | Coupon, shipping choice and server-quoted totals; Razorpay modal or Cash on Delivery |
 | Account | API `/api/orders/mine` | Shows profile basics and order history |
 | Admin console | API `/api/admin/*` | 35 pages, most built on a generic `CrudAdmin` component |

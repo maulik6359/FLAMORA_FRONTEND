@@ -10,11 +10,28 @@ export default function AdminCategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [showForm, setShowForm] = useState(false);
 
+  // The admin list includes inactive categories, so they can be reactivated.
   async function load() {
-    const r = await api.categories();
-    setCategories(r.categories);
+    if (!token) return;
+    try {
+      const r = await api.admin.categories(token);
+      setCategories(r.categories);
+    } catch (err: any) {
+      toast.error(err.message || "Could not load categories");
+    }
   }
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [token]);
+
+  async function toggleActive(c: Category) {
+    if (!token) return;
+    try {
+      await api.admin.updateCategory(c._id, { isActive: c.isActive === false }, token);
+      toast.success(c.isActive === false ? "Category activated" : "Category deactivated");
+      load();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  }
 
   async function onCreate(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -71,6 +88,14 @@ export default function AdminCategoriesPage() {
             <div className="p-4">
               <p className="font-display text-lg text-neutral-100">{c.name}</p>
               <p className="mt-1 text-xs text-neutral-500">{c.slug}</p>
+              <div className="mt-3 flex items-center justify-between">
+                <span className={`text-[10px] uppercase tracking-[0.25em] ${c.isActive === false ? "text-red-400" : "text-emerald-400"}`}>
+                  {c.isActive === false ? "Inactive" : "Active"}
+                </span>
+                <button type="button" onClick={() => toggleActive(c)} className="text-[10px] uppercase tracking-[0.25em] text-gold hover:underline" data-testid={`toggle-category-${c.slug}`}>
+                  {c.isActive === false ? "Activate" : "Deactivate"}
+                </button>
+              </div>
             </div>
           </div>
         ))}

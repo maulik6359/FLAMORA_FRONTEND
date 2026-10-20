@@ -11,24 +11,43 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { api } from "@/lib/api";
+
 export default function ContactPage() {
   const [sent, setSent] = useState(false);
+  const [busy, setBusy] = useState(false);
 
-  const handleSubmit = (event) => {
+  // The message is only reported as sent once the API has stored it.
+  const handleSubmit = async (event) => {
     event.preventDefault();
+    const form = event.currentTarget;
+    const value = (id) => (form.elements.namedItem(id)?.value ?? "").trim();
 
-    setSent(true);
-
-    toast.success("Message sent", {
-      description:
-        "Thank you for contacting FLĀMORÁ. We’ll be in touch shortly.",
-    });
-
-    event.currentTarget.reset();
-
-    setTimeout(() => {
-      setSent(false);
-    }, 3000);
+    setBusy(true);
+    try {
+      await api.contact({
+        name: [value("contact-first-name"), value("contact-last-name")].filter(Boolean).join(" "),
+        email: value("contact-email"),
+        phone: value("contact-phone"),
+        subject: value("contact-enquiry"),
+        message: value("message"),
+      });
+      setSent(true);
+      toast.success("Message sent", {
+        description:
+          "Thank you for contacting FLĀMORÁ. We’ll be in touch shortly.",
+      });
+      form.reset();
+      setTimeout(() => {
+        setSent(false);
+      }, 3000);
+    } catch (err) {
+      toast.error("Your message wasn't sent", {
+        description: err?.message || "Please try again in a moment.",
+      });
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -284,11 +303,13 @@ export default function ContactPage() {
 
               <button
                 type="submit"
-                disabled={sent}
+                disabled={sent || busy}
                 className="group flex w-full items-center justify-center gap-3 bg-ink py-4 text-[11px] uppercase tracking-[0.28em] text-ivory transition-opacity hover:opacity-90 disabled:opacity-60"
               >
                 {sent ? (
                   "Message sent"
+                ) : busy ? (
+                  "Sending…"
                 ) : (
                   <>
                     Send enquiry

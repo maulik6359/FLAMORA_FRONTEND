@@ -17,15 +17,15 @@ Routing uses the Next.js **App Router**, where folders under `app/` map to URL s
 | `/collections/[slug]` | `(shop)/collections/[slug]/page.tsx` | Server (`force-dynamic`) | Static description + API products (`fetchCatalog({ collection })`) | Products in one collection. Calls `notFound()` for unknown slugs, and says so if the products can't be loaded. |
 | `/cart` | `(shop)/cart/page.tsx` | Client | Cart store | Line items, quantity changes, subtotal, "Checkout" (signed-out users go to `/auth/login?from=/checkout`) |
 | `/wishlist` | `(shop)/wishlist/page.tsx` | Client | Wishlist store + API | Catalogue products whose IDs are in the wishlist store |
-| `/checkout` | `(shop)/checkout/page.tsx` | Client | API | Requires sign-in. Contact and shipping form, payment method choice, order creation, Razorpay or COD. See [API integration: checkout](api-integration.md#checkout-flow). |
+| `/checkout` | `(shop)/checkout/page.tsx` | Client | API | Requires sign-in. Contact and shipping form, coupon, shipping choice, server-quoted totals (`/api/orders/quote`), payment method choice, order creation, Razorpay or COD. See [API integration: checkout](api-integration.md#checkout-flow). |
 | `/checkout/success` | `(shop)/checkout/success/page.tsx` | Client | API | Reads `order_id`/`orderId` and `payment_id`/`razorpay_payment_id` from the query string. Polls `GET /api/orders/:id` up to 10 times. Clears the cart. The current checkout page shows its own confirmation and doesn't navigate here. |
 | `/auth/login` | `(shop)/auth/login/page.tsx` | Client | API | Email and password sign-in. Takes `?from=` for the redirect target. Admins are sent to `/admin/dashboard`. |
 | `/auth/register` | `(shop)/auth/register/page.tsx` | Client | API | Name, email, password, confirmation, terms checkbox and newsletter checkbox (the newsletter choice isn't sent) |
 | `/login` | `(shop)/login/page.tsx` | Client | — | Legacy path. Redirects with `router.replace("/auth/login")`. |
 | `/account` | `(shop)/account/page.tsx` | Client | API | Requires sign-in. Profile cards, an admin console link for admins, order history (`/api/orders/mine`), sign out |
-| `/orders` | `(shop)/orders/page.tsx` | Client | — | Always shows the empty state. The loading code is commented out ([Known issue 5](known-issues.md#5-the-orders-page-never-loads-orders)). |
+| `/orders` | `(shop)/orders/page.tsx` | Client | API | Order history (`/api/orders/mine`) with loading, signed-out, error and empty states |
 | `/about` | `(shop)/about/page.tsx` | Server | Static | Brand story, with `HOME/BrandStory` and `HOME/Benefits` |
-| `/contact` | `(shop)/contact/page.tsx` | Client | — | Contact form that shows a toast but sends nothing |
+| `/contact` | `(shop)/contact/page.tsx` | Client | API | Contact form. Sends `POST /api/contact` and confirms only once it's stored. |
 | `/three` | `app/three/page.tsx` | Client | — | Three.js showcase, with `JewelScene` loaded through `next/dynamic` with `ssr: false` |
 
 Not-found pages use the Next.js default. No custom `not-found.tsx` or `error.tsx` exists.
@@ -43,12 +43,12 @@ All of these live under `app/(admin)/admin/` and render inside `AdminShell`.
 | `/admin/products/create` | `ProductForm` | `GET /api/categories`, `POST /api/admin/products` |
 | `/admin/products/[id]/edit` | `ProductForm`, plus a link to variants | `GET /api/admin/products/:id`, `PATCH /api/admin/products/:id` |
 | `/admin/products/[id]/variants` | Variant list, inline create, delete | `GET /api/admin/products/:id`, `GET`/`POST`/`DELETE …/variants` |
-| `/admin/categories` | List plus a create form | `GET /api/categories`, `POST /api/admin/categories` |
+| `/admin/categories` | List (inactive ones included, with an Active/Inactive badge and an Activate/Deactivate toggle) plus a create form | `GET /api/admin/categories`, `POST /api/admin/categories`, `PATCH /api/admin/categories/:id` |
 | `/admin/brands`, `/collections`, `/materials`, `/gemstones` | `CrudAdmin` | `GET /api/admin/<x>?all=true` (no such endpoint, see [Known issue 4](known-issues.md#4-admin-pages-for-brands-collections-materials-and-gemstones-cant-load-their-lists)), `POST`/`PATCH`/`DELETE /api/admin/<x>` |
 | `/admin/inventory` | Summary KPIs, low-stock filter, search, adjust modal | `GET /api/admin/inventory`, `PATCH …/:id/adjust` |
 | `/admin/inventory/[productId]/history` | Adjustment history table | `GET /api/admin/products/:id`, `GET /api/admin/inventory/:id/history` |
 | `/admin/orders` | Status filter tabs and an inline status `<select>` | `GET /api/admin/orders`, `PATCH /api/admin/orders/:id/status` |
-| `/admin/customers` | Customer table (first 50) | `GET /api/admin/customers?limit=50` |
+| `/admin/customers` | Customer table (first 50) with status, **Block/Unblock** and **Make admin** (asks for confirmation) | `GET /api/admin/customers?limit=50`, `PATCH /api/admin/customers/:id` |
 | `/admin/coupons` | `CrudAdmin` | `/api/admin/coupons` |
 | `/admin/offers` | `CrudAdmin` | `/api/admin/offers` |
 | `/admin/banners` | `CrudAdmin` | `/api/admin/banners` |

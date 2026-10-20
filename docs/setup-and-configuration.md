@@ -33,6 +33,7 @@ There's no test script.
 | `NEXT_PUBLIC_API_URL` | `/api` | **Yes**: `lib/api.ts` (falls back to `/api`) and `lib/api/axios.ts` (falls back to `http://localhost:5000/api/v1`) | Base URL for browser API calls. Inlined into the client bundle at build time. |
 | `API_URL` | `http://127.0.0.1:8001/api` | **No** | Not referenced anywhere. The server-side fetches in `app/(shop)/page.tsx` hard-code `http://127.0.0.1:8001/api`. |
 | `NEXT_PUBLIC_SITE_NAME` | `FLAMORA` | **No** | Not referenced. The brand name is hard-coded in components. |
+| `API_INTERNAL_URL` | not set | **Yes** (optional): `lib/catalog.ts`, `lib/currency.ts` | Backend base URL for **server-side** fetches (catalogue on server-rendered pages, store currency in the root layout). Defaults to `http://127.0.0.1:8001`. |
 
 `process.env.NODE_ENV` decides whether `<Analytics />` (Vercel Web Analytics) is rendered. It's rendered only in production.
 
@@ -93,7 +94,7 @@ The repository includes `@vercel/analytics` and `.gitignore` entries for `.verce
 
 - run the frontend and backend on the same machine or container, or
 - change the rewrite destination, or
-- point `NEXT_PUBLIC_API_URL` at the public API URL and make sure CORS allows it (the backend currently reflects any origin).
+- point `NEXT_PUBLIC_API_URL` at the public API URL and add the frontend's origin to the backend's `FRONTEND_URL` (its CORS allow-list), and set `API_INTERNAL_URL` for server-side fetches.
 
 ## Troubleshooting
 

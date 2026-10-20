@@ -19,6 +19,9 @@ export interface Product {
   featured?: boolean;
   bestseller?: boolean;
   isNew?: boolean;
+  /** Average of approved reviews (0 when there are none) and how many there are. */
+  rating?: number;
+  reviewCount?: number;
 }
 
 export interface Collection {
@@ -202,13 +205,5 @@ export function getCollectionBySlug(
 |--------------------------------------------------------------------------
 */
 
-export function formatPrice(
-  price: number,
-): string {
-  return new Intl.NumberFormat("en-AU", {
-    style: "currency",
-    currency: "AUD",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(price);
-}
+// One formatter for the whole storefront: the store currency (see lib/currency.ts).
+export { formatPrice } from "@/lib/format";
