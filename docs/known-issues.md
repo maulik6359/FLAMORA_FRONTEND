@@ -73,7 +73,7 @@ Severity labels:
 | --- | --- | --- |
 | S5 | **The token is readable by JavaScript.** The JWT is stored in `localStorage` (Zustand `persist`) and in a non-`HttpOnly` cookie `flamora_token`. The admin middleware trusts the client-written `flamora_role` cookie for routing. The backend still enforces the admin role on every admin API call. | `lib/store.ts`, `middleware.ts` |
 | S8 | **The build ignores type and lint errors.** `next.config.mjs` sets `typescript.ignoreBuildErrors` and `eslint.ignoreDuringBuilds`, and `tsconfig.json` has `"strict": false`. | `next.config.mjs`, `tsconfig.json` |
-| S9 | **The admin login form pre-fills credentials.** The email and password inputs on `/admin/login` have hard-coded `defaultValue`s, so a login pair ships in the client JavaScript bundle. Remove the defaults and rotate that password wherever it's in use. | `app/(admin)/admin/login/page.tsx` |
+| S9 | **Resolved: the admin login form pre-filled credentials.** The email and password inputs on `/admin/login` used to have hard-coded `defaultValue`s, so a login pair shipped in the client JavaScript bundle. The defaults were removed in the QA-audit fixes. The pair is still in Git history and in any bundle built before the fix, so **rotate that password** wherever it's in use. | `app/(admin)/admin/login/page.tsx` |
 
 ---
 
